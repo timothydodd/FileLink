@@ -1,0 +1,43 @@
+.progress-cont {
+  height: 25px;
+  width: 100%;
+  border-radius: 4px;
+  background-color: white;
+  position: relative;
+  border: solid 1px var(--border-color);
+  padding: 2px;
+
+  
+}
+.progress-cont .inner-pad {
+  position: relative;
+  width: 100%;
+  height: 100%;
+
+ 
+}
+.progress-cont .inner-pad .progress {
+   width: 0;
+   height: 100%;
+   position: absolute;
+   z-index: 1;
+   top: 0;
+   left: 0;
+   border-radius: 4px;
+   background-color: var(--primary);
+   transition: 0.5s all;
+ }
+
+.progress-cont .inner-pad .progress-title {
+   position: absolute;
+   z-index: 2;
+   top: 0px;
+   bottom: 0px;
+   right: 15px;
+   width: 20px;
+   display: flex;
+   flex-direction: column;
+   justify-content: center;
+   color: white;
+   font-weight: 600;
+ }

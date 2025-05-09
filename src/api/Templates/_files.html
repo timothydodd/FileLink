@@ -1,0 +1,5 @@
+
+    {{ for f in files }}
+    <a href="{{f.path}}">{{f.name}}</a>
+    <div>{{f.size}}</div>
+    {{end}}

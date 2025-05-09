@@ -1,0 +1,9 @@
+@if(isLoggedIn())
+{
+<app-main-nav></app-main-nav>
+}
+<div class="route-container">
+    <router-outlet></router-outlet>
+</div>
+<app-toast></app-toast>
+<app-modal> </app-modal>

@@ -1,0 +1,34 @@
+:host {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  padding: 10px 20px;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border-color);
+  background-color: white;
+}
+
+.btn-icon::after {
+  content: none;
+  display: none;
+}
+@media screen and (max-width: 768px) {
+  :host {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 0;
+    position: relative;
+    gap: 20px;
+  }
+  :host app-main-menu {
+    position: absolute;
+    top: 18px;
+    right: 10px;
+  }
+  ::ng-deep app-share-link-display {
+    display: block;
+    width: 100%;
+  }
+}

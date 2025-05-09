@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<head>
+    <title>{{title}}</title>
+    <link rel=""preconnect"" href=""https://fonts.googleapis.com"">
+    <link rel=""preconnect"" href=""https://fonts.gstatic.com"" crossorigin>
+    <link href=""https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap"" rel=""stylesheet"">
+    <style type="text/css">
+        {{include '_styles.css' }}
+    </style>
+
+</head>
+<body>
+     <h1>Index of {{path}}</h1>
+     <hr>
+     {{ if backUrl != null && backUrl != ''}}
+            <a href="{{back_url}}">../</a>
+            <div></div>
+     {{ end }}
+     {{ if folders | array.size > 0 }}
+        <pre class="single">
+         {{include '_folders.html' folders}}
+            </pre>
+     {{ end }}
+     <pre>
+        {{include '_files.html' files}}
+     </pre>
+
+</body>
+<script>
+{{script}}
+</script>
+</html>

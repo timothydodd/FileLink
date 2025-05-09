@@ -1,0 +1,122 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  flex-grow: 1;
+  padding-top: 100px;
+}
+
+.buttons {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  padding: 0 100px;
+  padding: 20px;
+  gap: 50px;
+}
+.card-down {
+  display: flex;
+  flex-direction: column;
+
+  gap: 5px;
+  color: var(--primary);
+  width: 166px;
+}
+
+.item:hover {
+  outline: 2px solid var(--primary);
+}
+.item:hover .overlay {
+  opacity: 1;
+}
+.item .overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.587);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  color: var(--primary-light);
+}
+
+.item {
+  position: relative;
+  overflow: hidden;
+  height: 247px;
+  width: 165px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-color: white;
+  border-radius: 5px;
+  box-shadow: 3px 3px 15px rgba(0, 0, 0, 0.375);
+  box-sizing: border-box;
+}
+/* .card-down.image{
+    width: calc((165px *2) + 20px);
+}
+.card-down.image .item{
+    width: calc((165px *2) + 20px);
+} */
+.add-button {
+  background-color: rgba(159, 159, 159, 0.147);
+  color: rgb(160, 160, 160);
+  box-shadow: inset 3px 3px 15px rgba(0, 0, 0, 0.105);
+}
+
+.icon-wrap {
+  padding: 15px;
+  border: 1px solid var(--primary);
+}
+.img-wrap img {
+  height: 100%;
+  width: auto;
+  object-fit: contain;
+}
+.card-down .title {
+  font-weight: bold;
+  color: rgb(97, 97, 97);
+  font-size: 16px;
+
+  text-transform: uppercase;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+.card-down .title2 {
+  color: rgb(125, 125, 125);
+  font-size: 16px;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  text-align: left;
+}
+.card-down .info {
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.662);
+
+  text-transform: uppercase;
+}
+.card-down .info.small {
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.662);
+  text-transform: uppercase;
+  font-weight: 500;
+}
+.card-down .info-panel {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+@media screen and (max-width: 768px) {
+  :host {
+    padding-top: 50px;
+  }
+}
