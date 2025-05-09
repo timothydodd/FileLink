@@ -95,11 +95,11 @@ To enable this feature, set your `OMDBSETTINGS__APIKEY` environment variable wit
 Clone and run locally:
 
 ```bash
-git clone https://github.com/yourname/filelink.git
+git clone https://github.com/timothydodd/FileLink.git
 cd filelink
 docker compose up --build
 ```
 
 ## 📄 License
 
-MIT © [Your Name](https://github.com/yourname)
+MIT © [Tim Dodd](https://github.com/timothydodd)
