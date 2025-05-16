@@ -11,11 +11,15 @@ public class MoviePlugin : IFilePlugin
     public readonly UploadItemRepo _uploadItemRepo;
 
     readonly Dictionary<string, string> _seriesPostersCache = new Dictionary<string, string>();
-    public MoviePlugin(OmdbClient omdbClient, ILogger<MoviePlugin> logger, UploadItemRepo uploadItemRepo)
+    readonly string _webRootPath;
+    readonly string _postersPath;
+    public MoviePlugin(OmdbClient omdbClient, ILogger<MoviePlugin> logger, UploadItemRepo uploadItemRepo, IWebHostEnvironment env)
     {
         _omdbClient = omdbClient;
         _logger = logger;
         _uploadItemRepo = uploadItemRepo;
+        _webRootPath = env.WebRootPath;
+        _postersPath = Path.Combine(_webRootPath, "posters");
     }
 
     public HashSet<string> FileExtensions => new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".mp4", ".mkv", ".avi", ".mov", ".wmv", ".webm", ".m4v", ".3gp", ".mpg", ".mpeg", ".m2v", ".vob", ".m2ts", ".mts", ".divx", ".xvid" };
@@ -80,7 +84,7 @@ public class MoviePlugin : IFilePlugin
         // try downloading the poster into local wwwroot
         if (metaData.Poster != null && metaData.Poster.StartsWith("http", StringComparison.OrdinalIgnoreCase))
         {
-            var directory = Path.Combine("wwwroot", "posters");
+            var directory = _postersPath;
             if (!Directory.Exists(directory))
                 Directory.CreateDirectory(directory);
 
@@ -133,7 +137,7 @@ public class MoviePlugin : IFilePlugin
         // try downloading the poster into local wwwroot
         if (metaData.Poster != null && metaData.Poster.StartsWith("http", StringComparison.OrdinalIgnoreCase))
         {
-            var directory = Path.Combine("wwwroot", "posters");
+            var directory = _postersPath;
             if (!Directory.Exists(directory))
                 Directory.CreateDirectory(directory);
 
@@ -190,7 +194,7 @@ public class MoviePlugin : IFilePlugin
         // try downloading the poster into local wwwroot
         if (metaData.Poster != null && metaData.Poster.StartsWith("http", StringComparison.OrdinalIgnoreCase))
         {
-            var directory = Path.Combine("wwwroot", "posters");
+            var directory = _postersPath;
             if (!Directory.Exists(directory))
                 Directory.CreateDirectory(directory);
 
