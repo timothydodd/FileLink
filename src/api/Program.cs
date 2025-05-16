@@ -1,5 +1,6 @@
 ﻿using FileLink.Common;
 using FileLink.Common.HealthCheck;
+using FileLink.Plugin;
 using FileLink.Services;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using ServiceStack;
@@ -8,7 +9,7 @@ namespace FileLink;
 
 public class Program
 {
-    public static void Main(string[] args)
+    public async static Task Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
 
@@ -60,6 +61,18 @@ public class Program
         {
             var dbInitializer = scope.ServiceProvider.GetRequiredService<DatabaseInitializer>();
             dbInitializer.CreateTable();
+
+            var omdbSettings = config.GetSection("OmdbSettings").Get<OmdbSettings>();
+            if (omdbSettings is not null && !string.IsNullOrEmpty(omdbSettings.ApiKey))
+            {
+                var uploadItemRepo = scope.ServiceProvider.GetRequiredService<Repos.UploadItemRepo>();
+                var metaItems = await uploadItemRepo.GetAllItemsWithOutMetadata();
+                var queue = scope.ServiceProvider.GetRequiredService<BackgroundTaskQueue>();
+                foreach (var item in metaItems)
+                {
+                    await queue.QueueFileProcessAsync(item);
+                }
+            }
         }
         // Configure the HTTP request pipeline.
         ConfigureMiddleware(app);
