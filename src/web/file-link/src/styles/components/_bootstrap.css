@@ -1,0 +1,8 @@
+.dropdown-item.active-link {
+  background-color: var(--primary);
+  color: white;
+}
+.dropdown-item:hover {
+  background-color: var(--secondary);
+  color: white;
+}

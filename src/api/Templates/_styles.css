@@ -1,0 +1,169 @@
+*,
+::after,
+::before {
+    box-sizing: border-box;
+}
+
+body {
+    height: 100%;
+    width: 8.5in;
+    margin: .25in;
+    padding-right: .25in;
+    /* for some reason, chromium ignores the margin-right .25in so applying padding to deal with it */
+    font-family: ""Space Mono"", monospace;
+    -webkit-font-smoothing: antialiased;
+    background-color: white;
+    color: black;
+    width: 8.5in;
+    max-width: 8.5in;
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.5;
+}
+pre {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 10px 120px;
+    font-family: ""Space Mono"", monospace;
+    font-weight: 400;
+    font-style: normal;
+}
+    pre.single {
+        grid-template-columns: auto 
+    }
+    @page {
+        margin: .25in;
+        padding-right: .25in;
+    } 
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+dt {
+    margin-top: 0;
+    font-weight: 600;
+}
+
+h1 {
+    font-size: 35px;
+    margin: 0;
+}
+
+ol,
+ul {
+    padding-left: 2rem;
+}
+
+dl,
+ol,
+ul {
+    margin-top: 0;
+}
+
+ol ol,
+ol ul,
+ul ol,
+ul ul {
+    margin-bottom: 0;
+}
+
+dt {
+    font-weight: 700;
+
+}
+
+dd {
+    margin-left: 0;
+
+}
+
+blockquote {
+    margin: 0 0 1rem;
+}
+
+b,
+strong {
+    font-weight: bolder;
+}
+
+.small,
+small {
+    font-size: 0.875em;
+}
+
+dl {
+    display: flex;
+    flex-direction: row;
+    gap: 5px;
+    justify-content: start;
+    text-align: left;
+    line-height: 1.2;
+    margin: 0;
+}
+
+dd {
+    margin-inline-start: 0;
+}
+
+dt {
+    margin: 0;
+    margin-inline-start: 0;
+    font-weight: bold;
+}
+
+.flex-row {
+    display: flex;
+    flex-direction: row;
+    gap: 5px;
+    align-items: start;
+}
+
+.flex-column {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.space-between {
+    justify-content: space-between;
+}
+
+.mb20 {
+    margin-bottom: 20px;
+}
+
+.divider {
+    border-bottom: 2px solid lightgray;
+    margin: 10px 0px;
+}
+
+.wrap {
+    white-space: normal;
+    word-wrap: normal;
+}
+
+.avoid-page-break {
+    page-break-inside: avoid;
+}
+ul li{
+    page-break-inside: avoid;
+}
+
+.gap10 {
+    gap: 10px;
+}
+
+.gap15 {
+    gap: 15px;
+}
+.center-dat {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}

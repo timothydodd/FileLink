@@ -1,0 +1,8 @@
+@import url("https://fonts.googleapis.com/css2?family=Over+the+Rainbow&family=Overpass:ital,wght@0,100..900;1,100..900&family=PT+Sans+Narrow:wght@400;700&display=swap");
+:host {
+  font-family: "Over the Rainbow", cursive;
+  font-size: 30px;
+  font-weight: 600;
+  font-style: normal;
+  color: var(--primary);
+}
