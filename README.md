@@ -1,7 +1,8 @@
 #  FileLink
 
 **FileLink** is a lightweight, self-hosted file sharing app that runs in a container. It allows users to upload files and share them using simple, secure external links—**no login required**. The owner of the instance can log in to manage upload groups and access controls.
-![image](https://github.com/user-attachments/assets/6878454f-2691-486f-b5d4-04d4fe432e21)
+![image](https://github.com/user-attachments/assets/7b581dca-7d33-4295-9670-689f7ccf2902)
+
 
 ## ✨ Features
 
