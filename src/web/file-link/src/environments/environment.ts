@@ -9,8 +9,8 @@ export const environment = {
   },
   apiUrl: 'http://localhost:5211',
   auth: {
-    clientId: 'filelink',
-    audience: 'https://www.filelink.com',
+    clientId: '--filelink--',
+    audience: '--filelink--',
     useLocalStorage: true,
   },
 };

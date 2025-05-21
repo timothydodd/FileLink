@@ -2,15 +2,14 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { concatMap, of } from 'rxjs';
-import { LogoComponent } from '../../_components/logo/logo.component';
+import { SpinnerComponent } from '../../_components/common/spinner/spinner.component';
 import { JwtAuthProvider } from '../../_services/auth/providers/jwt-auth-provider.service';
 import { RouterHelperService } from '../../_services/route-helper';
 import { AuthLinkService } from '../../_services/web-api/auth-link.service';
 
 @Component({
-  imports: [LogoComponent],
-  template: `<app-logo></app-logo>
-    <p>-Loading-</p> `,
+  imports: [SpinnerComponent],
+  template: `<app-spinner></app-spinner> `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class LinkRoutePageComponent {
