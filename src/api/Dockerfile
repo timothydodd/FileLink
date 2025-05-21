@@ -52,12 +52,11 @@ COPY --from=publish /app/publish .
 
 
 # Create directories with proper permissions
+# At the end of your Dockerfile, before switching to app user
 RUN mkdir -p /app/wwwroot /app/data/db && \
+    touch /app/wwwroot/env-config.js && \
+    chmod 777 /app/wwwroot /app/wwwroot/env-config.js /app/data /app/data/db && \
     chown -R app:app /app/wwwroot /app/data /app/data/db
-
-# Copy and fix the script
-RUN chmod +x /app/generate-env-config.sh && \
-    chown app:app /app/generate-env-config.sh
 
 
 # Environment variables with default values
