@@ -225,37 +225,39 @@ export class UploadViewPageComponent implements OnDestroy, AfterViewInit {
     this.uploadService.getLocalInfo().subscribe((x) => {
       this.localFilesEnabled.set(x.hasLocalPaths);
     });
-    this.srService
-      .startConnection()
-      .pipe(
-        switchMap(() => {
-          console.log('SignalR connection started');
-          return this.srService.joinGroup(this.groupId()!);
-        }),
-        switchMap(() => {
-          return this.srService.listFormItemChange();
-        }),
-        takeUntilDestroyed()
-      )
-      .subscribe((z) => {
-        var files = this.files();
-        if (files) {
-          // find index of item and replace it
-          var index = files.findIndex((x) => x.id === z.id);
-          if (index !== -1) {
-            files[index] = z;
-            this.files.update(() => {
-              return [...files!];
-            });
-          } else {
-            // add new item
-            files.push(z);
-            this.files.update(() => {
-              return [...files!];
-            });
+    setTimeout(() => {
+      this.srService
+        .startConnection()
+        .pipe(
+          switchMap(() => {
+            console.log('SignalR connection started');
+            return this.srService.joinGroup(this.groupId()!);
+          }),
+          switchMap(() => {
+            return this.srService.listFormItemChange();
+          }),
+          takeUntilDestroyed()
+        )
+        .subscribe((z) => {
+          var files = this.files();
+          if (files) {
+            // find index of item and replace it
+            var index = files.findIndex((x) => x.id === z.id);
+            if (index !== -1) {
+              files[index] = z;
+              this.files.update(() => {
+                return [...files!];
+              });
+            } else {
+              // add new item
+              files.push(z);
+              this.files.update(() => {
+                return [...files!];
+              });
+            }
           }
-        }
-      });
+        });
+    }, 2000);
   }
   ngAfterViewInit(): void {
     Fancybox.bind(this.elementRef.nativeElement, '[data-fancybox]');
