@@ -31,7 +31,10 @@ export class SignalRService {
           accessTokenFactory: () => {
             return firstValueFrom(
               this.authService.getTokenSilently$().pipe(
-                map((token) => token?.token ?? ''),
+                map((token) => {
+                  if (!token?.token) throw new Error('Token is not available. Please log in again.');
+                  return token.token;
+                }),
                 tap(() => console.log('SignalR token retrieved successfully'))
               )
             );
