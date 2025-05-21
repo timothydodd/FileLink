@@ -45,9 +45,9 @@ You can run the project straight out of the box without any configuration or you
 | `StorageSettings__LocalSharedPaths`       | Local files to share, is an array use StorageSettings__LocalSharedPaths_0, StorageSettings__LocalSharedPaths_1 ect  | null                 |
 | `DatabaseType`                             | `sqlite` or `mysql`          | `sqlite`                   |
 | `ConnectionStrings__DefaultConnection`     | MySQL connection string (not needed for sqlite)     | See config                 |
-| `Auth__ClientId`             | JWT issuer                   | `https://www.filelink.com` |
-| `Auth__Audience`           | JWT audience                 | `https://www.filelink.com` |
-| `Auth__ClientId`                | JWT client ID                | `filelink`                 |
+| `Auth__ClientId`             | JWT issuer                   | `--filelink--` |
+| `Auth__Audience`           | JWT audience                 | `--filelink--` |
+| `Auth__ClientId`                | JWT client ID                | `--filelink--`                 |
 | `Auth__RefreshTokenExpiryInDays`                | How many days does your Refresh Token Last              | `15`                 |
 | `Auth__AccessTokenExpiryInMinutes`                | How many minutes does your Access token last             | `15`                 |
 | `OmdbSettings__ApiKey`                     | OMDb API key for metadata    | *unset*                    |
