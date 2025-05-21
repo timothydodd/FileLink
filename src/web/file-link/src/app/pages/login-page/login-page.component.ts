@@ -75,7 +75,7 @@ export class LoginPageComponent {
     this.error.set(null);
     this.authLinkService.loginAdmin(this.username, this.password).subscribe({
       next: (x) => {
-        if (x.token) this.authService.setToken(x.token);
+        if (x.token) this.authService.setToken(x.token, x.refreshToken, x.expiresIn);
       },
       error: (err) => {
         this.error.set('Login failed');

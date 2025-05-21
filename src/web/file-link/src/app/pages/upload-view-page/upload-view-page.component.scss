@@ -25,6 +25,12 @@
   width: 166px;
 }
 
+.sep {
+  width: 1px;
+
+  align-self: stretch;
+  background-color: var(--border-color);
+}
 .item:hover {
   outline: 2px solid var(--primary);
 }
@@ -69,6 +75,7 @@
   background-color: rgba(159, 159, 159, 0.147);
   color: rgb(160, 160, 160);
   box-shadow: inset 3px 3px 15px rgba(0, 0, 0, 0.105);
+  padding: 0;
 }
 
 .icon-wrap {
@@ -115,8 +122,80 @@
   display: flex;
   flex-direction: column;
 }
+.local-view {
+  .menu-options {
+    display: none;
+  }
+  &.test,
+  &:hover {
+    .add-icon {
+      display: none;
+    }
+    .menu-options {
+      display: grid;
+      grid-template-rows: 1fr 1fr;
+      padding: 0px;
+      flex-grow: 1;
+      justify-self: stretch;
+      align-self: stretch;
+      .btn-link {
+        flex-grow: 1;
+        width: 100%;
+        &:last-child {
+          border-top: 4px solid var(--border-color);
+        }
+        &:hover {
+          background-color: var(--primary);
+          color: white;
+        }
+      }
+    }
+  }
+}
+
+.top-menu .btn-link,
+.menu-options .btn-link {
+  display: flex;
+  flex-direction: row;
+  text-transform: uppercase;
+  gap: 5px;
+  justify-content: center;
+  color: var(--primary);
+  text-decoration: none;
+  align-items: center;
+  letter-spacing: 1px;
+
+  padding: 0px;
+  margin: 0px;
+  transition:
+    background-color 0.2s,
+    color 0.4s,
+    transform 0.4s,
+    box-shadow 0.4s;
+}
+.top-menu {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  padding: 0px 20px;
+  .btn-link {
+    text-decoration: none;
+    &:hover {
+      color: var(--secondary);
+    }
+  }
+}
 @media screen and (max-width: 768px) {
   :host {
     padding-top: 50px;
+  }
+}
+:host {
+  ::ng-deep {
+    .lib-skeleton {
+      border-radius: 4px;
+    }
   }
 }

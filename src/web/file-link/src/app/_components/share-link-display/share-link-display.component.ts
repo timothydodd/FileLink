@@ -6,7 +6,7 @@ import { AuthService } from '../../_services/auth/auth.service';
 import { JwtAuthProvider } from '../../_services/auth/providers/jwt-auth-provider.service';
 import { ToastService } from '../../_services/toast.service';
 import { AuthLinkService } from '../../_services/web-api/auth-link.service';
-import { SettingModalComponent } from '../setting-modal/setting-modal.component';
+import { SettingModalComponent } from '../common/setting-modal/setting-modal.component';
 
 @Component({
   selector: 'app-share-link-display',
@@ -46,23 +46,37 @@ import { SettingModalComponent } from '../setting-modal/setting-modal.component'
         text-overflow: ellipsis;
         width: 100%;
       }
+      @media screen and (max-width: 750px) {
+        :host {
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 10px 0;
+          position: relative;
+          gap: 20px;
+        }
+        :host .share-link-display {
+          flex-direction: column;
+        }
+      }
     `,
   ],
   template: `
     @if (loginUrl()) {
-      <div class="flex-row gap10">
+      <div class="flex-row gap10 share-link-display">
         <div class="code-display">
           <a [href]="loginUrl()">{{ loginUrl() }} </a>
         </div>
-        <button class="btn btn-icon" title="Re-roll link" (click)="reRoll()">
-          <lucide-angular name="refresh-cw" size="16"></lucide-angular>
-        </button>
-        <button class="btn btn-icon" title="Copy" (click)="copyLink()">
-          <lucide-angular name="copy" size="16"></lucide-angular>
-        </button>
-        <button class="btn btn-icon" title="Settings" (click)="settings.show(groupId()!)">
-          <lucide-angular name="settings" size="16"></lucide-angular>
-        </button>
+        <div class="flex-row gap10">
+          <button class="btn btn-icon" title="Copy" (click)="copyLink()">
+            <lucide-angular name="copy" size="16"></lucide-angular>
+          </button>
+
+          <button class="btn btn-icon" title="Settings" (click)="settings.show(groupId()!)">
+            <lucide-angular name="settings" size="16"></lucide-angular>
+          </button>
+          <ng-content></ng-content>
+        </div>
       </div>
       <app-setting-modal #settings> </app-setting-modal>
     }

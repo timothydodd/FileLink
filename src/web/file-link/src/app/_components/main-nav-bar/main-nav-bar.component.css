@@ -13,7 +13,7 @@
   content: none;
   display: none;
 }
-@media screen and (max-width: 768px) {
+@media screen and (max-width: 800px) {
   :host {
     flex-direction: column;
     align-items: center;
@@ -26,9 +26,5 @@
     position: absolute;
     top: 18px;
     right: 10px;
-  }
-  ::ng-deep app-share-link-display {
-    display: block;
-    width: 100%;
   }
 }

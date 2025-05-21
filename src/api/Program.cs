@@ -1,6 +1,9 @@
 ﻿using FileLink.Common;
 using FileLink.Common.HealthCheck;
+using FileLink.Controllers;
+using FileLink.Hubs;
 using FileLink.Plugin;
+using FileLink.Repos;
 using FileLink.Services;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using ServiceStack;
@@ -24,6 +27,7 @@ public class Program
                 c.TimestampFormat = "HH:mm:ss ";
             });
         }).CreateLogger("PreHost");
+
 
         // Add core services
         builder.Services.AddControllers();
@@ -77,7 +81,9 @@ public class Program
         // Configure the HTTP request pipeline.
         ConfigureMiddleware(app);
 
-
+        app.UseStreamingUpload(
+    app.Services.GetRequiredService<UploadItemRepo>(),
+    app.Services.GetRequiredService<BackgroundTaskQueue>(), app.Services.GetRequiredService<StorageSettings>());
 
         app.Run();
     }
@@ -98,5 +104,6 @@ public class Program
         app.MapControllers();
         app.UseHealthChecks("/health", new HealthCheckOptions { ResponseWriter = HealthCheck.WriteResponse });
         app.MapFallbackToFile("/index.html");
+        app.MapHub<UploadItemHub>("/hub/items");
     }
 }

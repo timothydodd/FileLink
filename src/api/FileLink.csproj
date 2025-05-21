@@ -59,4 +59,13 @@
     <PackageReference Include="ServiceStack.OrmLite.Sqlite.Data" Version="8.8.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="env-config.template.js">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="generate-env-config.sh">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

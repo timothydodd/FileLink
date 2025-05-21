@@ -1,17 +1,17 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { environment } from '../../../environments/environment';
+import { ConfigService } from '../config.service';
 
 @Injectable({ providedIn: 'root' })
 export class UploadService {
   private http = inject(HttpClient);
-
+  private configService = inject(ConfigService);
   create(file: File, groupId: string) {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('fileName', file.name);
 
-    return this.http.post(`${environment.apiUrl}/api/file/group/${groupId}/upload`, formData, {
+    return this.http.post(`${this.configService.apiUrl}/api/file/group/${groupId}/upload`, formData, {
       reportProgress: true,
       observe: 'events',
       responseType: 'text',
@@ -19,14 +19,26 @@ export class UploadService {
   }
 
   getUploads(groupId: string) {
-    return this.http.get<UploadItemResponse[]>(`${environment.apiUrl}/api/file/group/${groupId}`);
+    return this.http.get<UploadItemResponse[]>(`${this.configService.apiUrl}/api/file/group/${groupId}`);
   }
 
   createGroup() {
-    return this.http.get<CreateGroupResponse>(`${environment.apiUrl}/api/file/group`);
+    return this.http.get<CreateGroupResponse>(`${this.configService.apiUrl}/api/file/group`);
   }
   delete(groupId: string) {
-    return this.http.delete(`${environment.apiUrl}/api/file/group/${groupId}`);
+    return this.http.delete(`${this.configService.apiUrl}/api/file/group/${groupId}`);
+  }
+  getLocalInfo() {
+    return this.http.get<LocalInfo>(`${this.configService.apiUrl}/api/file/local/info`);
+  }
+  getLocalFiles() {
+    return this.http.get<LocalFile[]>(`${this.configService.apiUrl}/api/file/local`);
+  }
+  attachLocalFile(groupId: string, localFiles: AddLocalPath[]) {
+    return this.http.put<UploadItemResponse>(
+      `${this.configService.apiUrl}/api/file/group/${groupId}/local`,
+      localFiles
+    );
   }
 }
 
@@ -64,4 +76,17 @@ export interface Metadata {
   poster: string | null;
   seriesPoster: string | null;
   metaDataDate: string | null;
+}
+export interface LocalInfo {
+  hasLocalPaths: boolean;
+}
+export interface LocalFile {
+  localPathIndex: number;
+  name: string;
+  path: string;
+  size: number | null;
+}
+export interface AddLocalPath {
+  localPathIndex: number;
+  path: string;
 }

@@ -7,7 +7,7 @@ namespace FileLink.Services;
 public class PreSignUrlService
 {
     readonly string _secretKey;
-    public PreSignUrlService(JwtAuthSettings jwtAuth)
+    public PreSignUrlService(AuthSettings jwtAuth)
     {
         _secretKey = jwtAuth.SecurityKey!;
         if (string.IsNullOrEmpty(jwtAuth.SecurityKey))

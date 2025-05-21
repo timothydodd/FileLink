@@ -10,27 +10,28 @@ import { ModalService } from './modal.service';
   imports: [CommonModule, LucideAngularModule],
   template: `
     @if (isOpen()) {
-      <div class="backdrop" [@fadeInOut]></div>
-      <div class="modal-container">
-        <div class="modal" [@fadeInOut]>
-          <div class="modal-header">
-            <h4 class="modal-title">{{ title() }}</h4>
+      <div class="backdrop" [@fadeInOut]>
+        <div class="modal-container">
+          <div class="modal" [@fadeInOut] [ngClass]="modalClass()">
+            <div class="modal-header">
+              <h4 class="modal-title">{{ title() }}</h4>
 
-            <button class="close" aria-label="Close" (click)="close(false)">
-              <lucide-angular name="x"></lucide-angular>
-            </button>
-          </div>
+              <button class="close" aria-label="Close" (click)="close(false)">
+                <lucide-angular name="x"></lucide-angular>
+              </button>
+            </div>
 
-          <div class="modal-body">
-            @if (bodyTemplate()) {
-              <ng-container *ngTemplateOutlet="bodyTemplate()!"> </ng-container>
+            <div class="modal-body">
+              @if (bodyTemplate()) {
+                <ng-container *ngTemplateOutlet="bodyTemplate()!"> </ng-container>
+              }
+            </div>
+            @if (footerTemplate()) {
+              <div class="modal-footer">
+                <ng-container *ngTemplateOutlet="footerTemplate()!"> </ng-container>
+              </div>
             }
           </div>
-          @if (footerTemplate()) {
-            <div class="modal-footer">
-              <ng-container *ngTemplateOutlet="footerTemplate()!"> </ng-container>
-            </div>
-          }
         </div>
       </div>
     }
@@ -65,6 +66,7 @@ export class ModalComponent {
   bodyTemplate = signal<TemplateRef<any> | null | undefined>(null);
   isOpen = signal(false);
   title = signal<string | null>(null);
+  modalClass = signal<'sm' | 'lg' | 'xl'>('sm');
   constructor() {
     this.modalService.modalEvent.pipe(takeUntilDestroyed()).subscribe((x) => {
       if (x && x !== null) {
@@ -72,11 +74,13 @@ export class ModalComponent {
         this.bodyTemplate.set(x.bodyTemplate);
         this.footerTemplate.set(x.footerTemplate);
         this.title.set(x.title);
+        this.modalClass.set(x.size || 'sm');
       } else {
         this.isOpen.set(false);
         this.bodyTemplate.set(null);
         this.footerTemplate.set(null);
         this.title.set(null);
+        this.modalClass.set('sm');
       }
     });
   }

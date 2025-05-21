@@ -1,13 +1,14 @@
 import { inject, Injectable } from '@angular/core';
 import { ActivatedRouteSnapshot, Router, RouterStateSnapshot, UrlSegment, UrlTree } from '@angular/router';
 import { catchError, Observable, of, switchMap } from 'rxjs';
-import { environment } from '../../../environments/environment';
+import { ConfigService } from '../config.service';
 import { AuthService } from './auth.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class AuthGuard {
+  private configService = inject(ConfigService);
   private router = inject(Router);
   private authService = inject(AuthService);
 
@@ -41,16 +42,13 @@ export class AuthGuard {
           }
           return this.allowed(next, invalidUrl);
         } else {
-          const clientId = environment.auth.clientId;
-          const audience = environment.auth.audience;
+          const clientId = this.configService.clientId;
+          const audience = this.configService.audience;
           return this.authService
-            .getTokenSilently$(
-              {
-                clientId: clientId,
-                audience: audience,
-              },
-              state.url
-            )
+            .getTokenSilently$({
+              clientId: clientId,
+              audience: audience,
+            })
             .pipe(switchMap(() => this.allowed(next, invalidUrl)));
         }
       }),

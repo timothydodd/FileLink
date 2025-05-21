@@ -20,23 +20,42 @@ import { Observable } from 'rxjs';
 import { ProgressComponent } from './progress';
 
 @Component({
-  selector: 'lib-upload-items',
+  selector: 'app-upload-items',
   imports: [CommonModule, FormsModule, ProgressComponent, LucideAngularModule],
   template: `
-    <div class="box" [hidden]="!showDragArea() || isBusy()">
+    <div
+      class="box"
+      [hidden]="!showDragArea() || isBusy()"
+      [class.active]="isDragOver()"
+      (dragover)="onDragOver($event)"
+      (dragleave)="onDragLeave($event)"
+      (drop)="onDrop($event)"
+    >
       <div class="box-input">
-        <lucide-angular class="pulse" name="download" size="128"></lucide-angular>
-        <input
-          #filePicker
-          id="file"
-          type="file"
-          class="box-file-input"
-          [multiple]="true"
-          (change)="fileBrowseHandler($event.target)"
-        />
-        <label for="file"><strong>Choose a file</strong><span class="box-dragndrop"> or drag it here</span>.</label>
-        <button class="box-button" type="submit">Upload</button>
+        <lucide-angular
+          style="cursor:pointer"
+          name="cloud-upload"
+          class="pulse"
+          size="128"
+          (click)="filePicker.click()"
+        ></lucide-angular>
+
+        <label for="file">Drag and Drop files to upload</label>
+        <div class="flex-row gap20">
+          <button class="box-button" (click)="filePicker.click()">Upload File</button>
+          @if (allowCloudFiles()) {
+            <button class="box-button" (click)="attachCloudClicked.emit()">Attach Host File</button>
+          }
+        </div>
       </div>
+      <input
+        #filePicker
+        id="file"
+        type="file"
+        style="display: none"
+        [multiple]="true"
+        (change)="onFileSelected($event)"
+      />
     </div>
     @if (fileList(); as fl) {
       @if (fl.length > 0 || attachmentsView().length > 0) {
@@ -82,14 +101,44 @@ export class UploadItemsComponent {
     return this.attachments() ?? [];
   });
   statusChanged = output<UploadItemsStatus>();
-
+  isDragOver = signal(false);
+  allowCloudFiles = input(false);
+  attachCloudClicked = output();
   public Upload(uploadService: (file: File) => Observable<HttpEvent<string>>) {
-    this.fileService = uploadService;
+    if (!this.fileService) this.fileService = uploadService;
     this.filePicker()?.nativeElement.click();
   }
+  onDragOver(event: DragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragOver.set(true);
+  }
 
-  fileBrowseHandler($event: EventTarget | null) {
-    var eventFiles = ($event as HTMLInputElement)?.files;
+  onDragLeave(event: DragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragOver.set(false);
+  }
+
+  onDrop(event: DragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragOver.set(false);
+    const files = event.dataTransfer?.files;
+    if (files) {
+      this.handleFiles(files);
+    }
+  }
+
+  onFileSelected(event: Event) {
+    const element = event.target as HTMLInputElement;
+    const files = element.files;
+
+    if (files) {
+      this.handleFiles(files);
+    }
+  }
+  handleFiles(eventFiles: FileList | null) {
     if (!eventFiles) return;
     var files: IUploadFile[] = [];
 
@@ -106,10 +155,13 @@ export class UploadItemsComponent {
       } as IUploadFile;
       files.push(attachment);
     }
+
     if (files.length > 0) {
+      var existingFiles = this.fileList() ?? [];
       this.isBusy.set(true);
       this.statusChanged.emit({ uploading: true });
-      this.fileList.set(files);
+
+      this.fileList.set([...existingFiles, ...files]);
       if (this.prepService) {
         this.prepService().subscribe(() => {
           this.uploadFiles(files);

@@ -2,14 +2,14 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, signal, TemplateRef, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { LucideAngularModule } from 'lucide-angular';
-import { CheckComponent } from '../../_components/check/check.component';
 import { LoginCodeDisplayComponent } from '../../_components/login-code-display/login-code-display.component';
 import { Constants } from '../../_helpers/constants';
 import { AuthService } from '../../_services/auth/auth.service';
 import { JwtAuthProvider } from '../../_services/auth/providers/jwt-auth-provider.service';
 import { UserPreferenceService } from '../../_services/user-prefrences.service';
 import { UploadService } from '../../_services/web-api/upload.service';
-import { ModalService } from '../modal/modal.service';
+import { CheckComponent } from '../common/check/check.component';
+import { ModalService } from '../common/modal/modal.service';
 
 @Component({
   standalone: true,

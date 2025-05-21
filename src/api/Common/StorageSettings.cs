@@ -4,6 +4,7 @@ public class StorageSettings
 {
     public required string SharedFilesPath { get; set; }
     public required string DatabaseFilesPath { get; set; }
+
     public static string ResolvePath(string? path)
     {
         if (string.IsNullOrWhiteSpace(path))
@@ -15,5 +16,6 @@ public class StorageSettings
 
         return Path.GetFullPath(combined); // This cleans up any mixed slashes
     }
+    public List<String>? LocalSharedPaths { get; set; }
 }
 

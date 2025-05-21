@@ -12,13 +12,13 @@ import {
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { LucideAngularModule } from 'lucide-angular';
 import { take } from 'rxjs';
-import { AuthService } from '../../_services/auth/auth.service';
-import { JwtAuthProvider } from '../../_services/auth/providers/jwt-auth-provider.service';
-import { RouterHelperService } from '../../_services/route-helper';
-import { ToastService } from '../../_services/toast.service';
-import { UserPreferenceService } from '../../_services/user-prefrences.service';
-import { AuthLinkService, LoginRequest } from '../../_services/web-api/auth-link.service';
-import { UploadService } from '../../_services/web-api/upload.service';
+import { AuthService } from '../../../_services/auth/auth.service';
+import { JwtAuthProvider } from '../../../_services/auth/providers/jwt-auth-provider.service';
+import { RouterHelperService } from '../../../_services/route-helper';
+import { ToastService } from '../../../_services/toast.service';
+import { UserPreferenceService } from '../../../_services/user-prefrences.service';
+import { AuthLinkService, LoginRequest } from '../../../_services/web-api/auth-link.service';
+import { UploadService } from '../../../_services/web-api/upload.service';
 import { ModalService } from '../modal/modal.service';
 
 @Component({

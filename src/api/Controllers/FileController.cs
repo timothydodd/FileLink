@@ -1,11 +1,9 @@
 ﻿using System.Text.Json;
-using FileLink.Common;
 using FileLink.Plugin;
 using FileLink.Repos;
 using FileLink.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-
 
 namespace FileLink.Controllers;
 [Authorize]
@@ -20,25 +18,72 @@ public class FileController : ControllerBase
     private readonly UploadItemRepo _uploadItemRepo;
     private readonly UploadGroupRepo _uploadGroupRepo;
     private readonly UserResolverService _userResolverService;
-    private readonly AuthLinkGenerator _authLinkGenerator;
     private readonly BackgroundTaskQueue _backgroundTaskQueue;
-    private readonly JwtService _jwtService;
-    private readonly PreSignUrlService _preSignUrlService;
-    private readonly string RootUploadPath;
 
-    public FileController(ILogger<FileController> logger, StorageSettings storageSettings, UploadGroupRepo uploadGroupRepo, UploadItemRepo uploadItemRepo, UserResolverService userResolverService, AuthLinkGenerator authLinkGenerator, JwtService jwtService, BackgroundTaskQueue backgroundTaskQueue, PreSignUrlService preSignUrlService)
+    private readonly PreSignUrlService _preSignUrlService;
+
+    private readonly LocalFileCache _localFileCache;
+
+    public FileController(ILogger<FileController> logger,
+        UploadGroupRepo uploadGroupRepo,
+        UploadItemRepo uploadItemRepo,
+        UserResolverService userResolverService,
+        BackgroundTaskQueue backgroundTaskQueue,
+        PreSignUrlService preSignUrlService,
+        LocalFileCache localFileCache)
     {
         _logger = logger;
         _uploadGroupRepo = uploadGroupRepo;
         _uploadItemRepo = uploadItemRepo;
         _userResolverService = userResolverService;
-        RootUploadPath = StorageSettings.ResolvePath(storageSettings.SharedFilesPath);
-        _authLinkGenerator = authLinkGenerator;
-        _jwtService = jwtService;
         _backgroundTaskQueue = backgroundTaskQueue;
         _preSignUrlService = preSignUrlService;
+        _localFileCache = localFileCache;
     }
 
+    [HttpGet("local/info")]
+    [Authorize(Policy = Constants.AuthPolicy.RequireEditorRole)]
+    public LocalInfo GetLocalInfo()
+    {
+        return _localFileCache.GetInfo();
+    }
+    [HttpPut("group/{groupId}/local")]
+    [Authorize(Policy = Constants.AuthPolicy.RequireEditorRole)]
+    public async Task<List<CreateUploadItemResponse>> LinkLocalAsync(Guid groupId, [FromBody] List<AddLocalPath> items)
+    {
+        List<CreateUploadItemResponse> result = new List<CreateUploadItemResponse>();
+        foreach (var item in items)
+        {
+            var fullPath = _localFileCache.GetLocalFullPath(item.LocalPathIndex, item.Path);
+            var fileInfo = new FileInfo(fullPath);
+            if (fileInfo.Exists)
+            {
+                var uploadItem = new UploadItem()
+                {
+                    ItemId = Guid.NewGuid(),
+                    FileName = fileInfo.Name,
+                    GroupId = groupId,
+                    PhysicalPath = fullPath,
+                    Size = fileInfo.Length,
+                    CreatedDate = DateTime.UtcNow,
+                };
+
+                await _uploadItemRepo.Create(uploadItem);
+                await _backgroundTaskQueue.QueueFileProcessAsync(uploadItem);
+                result.Add(new CreateUploadItemResponse(uploadItem.ItemId));
+            }
+        }
+        return result;
+    }
+
+    [HttpGet("local")]
+    [Authorize(Policy = Constants.AuthPolicy.RequireEditorRole)]
+    public List<LocalFile> GetLocalFiles()
+    {
+        return _localFileCache.GetFiles();
+    }
+
+    [Authorize(Policy = Constants.AuthPolicy.RequireEditorRole)]
     [HttpGet("group")]
     public async Task<CreateGroupResponse> CreateGroup()
     {
@@ -62,52 +107,11 @@ public class FileController : ControllerBase
     [RequestFormLimits(MultipartBodyLengthLimit = long.MaxValue)]
     [Authorize(Policy = Constants.AuthPolicy.RequireEditorRole)]
     [HttpPost("group/{groupId}/upload")]
-    public async Task<IActionResult> Upload(Guid groupId)
+    public IActionResult Upload(Guid groupId)
     {
-        var form = await Request.ReadFormAsync();
-
-        var file = form.Files["file"];
-        var fileName = form["fileName"].ToString();
-
-        if (file == null || file.Length == 0)
-            return BadRequest("Upload a file.");
-
-
-
-        Guid itemId = Guid.NewGuid();
-
-        var jobId = Guid.NewGuid();
-        //var job = new JobEntity(documentId, jobId)
-        //{
-        //    JobType = Constants.JobTypes.PdfToImage
-        //};
-
-        //await _documentJobService.CreateOrUpdate(job);
-
-        var directory = Path.Combine(RootUploadPath, groupId.ToString());
-        var uploadPath = Path.Combine(directory, itemId.ToString() + fileName);
-        var uploadItem = new UploadItem()
-        {
-            ItemId = itemId,
-            FileName = fileName,
-            GroupId = groupId,
-            PhysicalPath = uploadPath,
-            Size = file.Length,
-            CreatedDate = DateTime.UtcNow,
-        };
-
-
-
-        using var rstream = file.OpenReadStream();
-        Directory.CreateDirectory(directory);
-        using var fs = new FileStream(uploadPath, FileMode.Create, FileAccess.Write, FileShare.None, 81920, useAsync: true);
-        await rstream.CopyToAsync(fs, 81920).ConfigureAwait(false);
-        await fs.FlushAsync().ConfigureAwait(false);
-        await _uploadItemRepo.Create(uploadItem);
-
-        await _backgroundTaskQueue.QueueFileProcessAsync(uploadItem);
-
-        return Ok(new CreateUploadItemResponse(itemId));
+        // This will never be called because our middleware handles it
+        // Just keep it for Swagger/API documentation
+        return Ok();
 
     }
     [AllowAnonymous]
@@ -198,46 +202,9 @@ public class FileController : ControllerBase
             {
                 continue;
             }
-            object? metadata = null;
-
-            if (item.Metadata != null)
-            {
 
 
-                metadata = JsonSerializer.Deserialize<Metadata>(item.Metadata);
-            }
-            var url = $"/api/file/{item.ItemId}{_preSignUrlService.GeneratePreSignedUrl(item.ItemId, new TimeSpan(24, 0, 0))}";
-            //check if FileName is an image
-            var extension = Path.GetExtension(item.FileName).ToLowerInvariant();
-            if (extension == ".jpg" || extension == ".jpeg" || extension == ".png" || extension == ".gif")
-            {
-                if (metadata == null)
-                {
-                    metadata = new Metadata()
-                    {
-                        MediaType = "image",
-                        Poster = url.TrimStart('/')
-                    };
-                }
-                else
-                {
-                    var m = (Metadata)metadata;
-                    m.Poster = url;
-                    m.MediaType = "image";
-                    metadata = m;
-                }
-
-            }
-
-
-            result.Add(new UploadItemResponse()
-            {
-                Name = item.FileName,
-                Id = item.ItemId,
-                Size = item.Size,
-                Metadata = metadata,
-                Url = url
-            });
+            result.Add(UploadItemResponse.FromUploadItem(_preSignUrlService, item));
 
 
         }
@@ -252,9 +219,59 @@ public class UploadItemResponse
     public long? Size { get; set; }
     public object? Metadata { get; set; }
     public string? Url { get; set; }
+
+    public static UploadItemResponse FromUploadItem(PreSignUrlService preSignUrlService, UploadItem item)
+    {
+        object? metadata = null;
+
+        if (item.Metadata != null)
+        {
+
+
+            metadata = JsonSerializer.Deserialize<Metadata>(item.Metadata);
+        }
+        var url = $"/api/file/{item.ItemId}{preSignUrlService.GeneratePreSignedUrl(item.ItemId, new TimeSpan(24, 0, 0))}";
+        //check if FileName is an image
+        var extension = Path.GetExtension(item.FileName).ToLowerInvariant();
+        if (extension == ".jpg" || extension == ".jpeg" || extension == ".png" || extension == ".gif")
+        {
+            if (metadata == null)
+            {
+                metadata = new Metadata()
+                {
+                    MediaType = "image",
+                    Poster = url.TrimStart('/')
+                };
+            }
+            else
+            {
+                var m = (Metadata)metadata;
+                m.Poster = url;
+                m.MediaType = "image";
+                metadata = m;
+            }
+
+        }
+
+        return new UploadItemResponse()
+        {
+            Name = item.FileName,
+            Id = item.ItemId,
+            Size = item.Size,
+            Metadata = metadata,
+            Url = url
+        };
+    }
 }
 public record CreateUploadItem(IFormFile File, string FileName, DateTime Expiration);
 public record CreateUploadItemResponse(Guid ItemId);
 public record CreateGroupResponse(Guid GroupId);
 
 public record GetShareLink(string Url, DateTime Expiration);
+
+
+public class AddLocalPath
+{
+    public required int LocalPathIndex { get; set; }
+    public required string Path { get; set; }
+}

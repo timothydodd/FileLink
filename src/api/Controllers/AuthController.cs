@@ -1,8 +1,11 @@
-﻿using FileLink.Repos;
+﻿using System.ComponentModel.DataAnnotations;
+using FileLink.Common.Jwt;
+using FileLink.Repos;
 using FileLink.Services;
 using LogMkApi.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens;
 
 namespace FileLink.Controllers;
 [Route("api/auth")]
@@ -17,6 +20,7 @@ public class AuthController : Controller
     private readonly JwtService _jwtService;
     readonly PasswordService _passwordService;
     readonly LinkCodeRepo _linkCodeRepo;
+    private readonly AuthSettings _authSettings;
     public AuthController(
         UserResolverService userResolverService,
         AuthLinkGenerator authLinkGenerator,
@@ -24,7 +28,8 @@ public class AuthController : Controller
         AppUserRepo appUserRepo,
         PasswordService passwordService,
         LinkCodeRepo linkCodeRepo,
-        ILogger<AuthController> logger)
+        ILogger<AuthController> logger,
+        AuthSettings authSettings)
     {
         _userResolverService = userResolverService;
         _authLinkGenerator = authLinkGenerator;
@@ -33,6 +38,37 @@ public class AuthController : Controller
         _passwordService = passwordService;
         _linkCodeRepo = linkCodeRepo;
         _logger = logger;
+        _authSettings = authSettings;
+    }
+    [AllowAnonymous]
+    [HttpPost("refresh")]
+    public async Task<IActionResult> Refresh([FromBody] TokenRefreshRequest request)
+    {
+        try
+        {
+            var (accessToken, refreshToken, expiresIn) = await _jwtService.RefreshToken(
+                request.ExpiredAccessToken,
+                request.RefreshToken);
+
+            return Ok(new
+            {
+                AccessToken = accessToken,
+                RefreshToken = refreshToken,
+                ExpiresIn = expiresIn
+            });
+        }
+        catch (SecurityTokenException ex)
+        {
+            return Unauthorized(new { Message = ex.Message });
+        }
+    }
+
+    [Authorize]
+    [HttpPost("revoke")]
+    public async Task<IActionResult> Revoke([FromBody] TokenRevokeRequest request)
+    {
+        await _jwtService.RevokeRefreshToken(request.RefreshToken);
+        return NoContent();
     }
     [Authorize(Policy = Constants.AuthPolicy.RequireOwner)]
     [HttpPost("change-password")]
@@ -87,9 +123,12 @@ public class AuthController : Controller
             lc.Uses = 1;
         }
         _linkCodeRepo.Update(lc);
+        var accessTokenExpiry = TimeSpan.FromMinutes(_authSettings.AccessTokenExpiryInMinutes);
         var token = await _jwtService.AuthToken("Unknown", lc.GroupId, lc.AppUserId,
-        lc.Role, new TimeSpan(1, 0, 0, 0));
-        return Ok(new LoginResponse(token));
+        lc.Role, accessTokenExpiry);
+        var refreshToken = await _jwtService.GenerateRefreshToken(lc.AppUserId);
+
+        return Ok(new LoginResponse(token, refreshToken, (long)accessTokenExpiry.TotalSeconds));
 
 
 
@@ -105,10 +144,12 @@ public class AuthController : Controller
         {
             return Unauthorized("Invalid email or password.");
         }
-
+        var accessTokenExpiry = TimeSpan.FromMinutes(_authSettings.AccessTokenExpiryInMinutes);
         var token = await _jwtService.AuthToken(user.UserName, null, user.AppUserId,
-        Constants.AuthRoleTypes.Owner, new TimeSpan(30, 0, 0, 0));
-        return Ok(new LoginResponse(token));
+        Constants.AuthRoleTypes.Owner, accessTokenExpiry);
+        var refreshToken = await _jwtService.GenerateRefreshToken(user.AppUserId);
+
+        return Ok(new LoginResponse(token, refreshToken, (long)accessTokenExpiry.TotalSeconds));
 
 
 
@@ -168,7 +209,7 @@ public record LinkList(Guid GroupId,
 public record GetCodeRequest(string Code);
 public record ShareLinkResponse(string Code, DateTime expirationDate);
 public record LoginRequest(string Code);
-public record LoginResponse(string Token);
+public record LoginResponse(string Token, string RefreshToken, long ExpiresIn);
 public class AdminLoginRequest
 {
     public required string UserName { get; set; }
@@ -178,4 +219,18 @@ public record ChangePasswordRequest
 {
     public required string OldPassword { get; set; }
     public required string NewPassword { get; set; }
+}
+public class TokenRefreshRequest
+{
+    [Required]
+    public required string ExpiredAccessToken { get; set; }
+
+    [Required]
+    public required string RefreshToken { get; set; }
+}
+
+public class TokenRevokeRequest
+{
+    [Required]
+    public required string RefreshToken { get; set; }
 }

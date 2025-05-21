@@ -1,6 +1,7 @@
 ﻿using System.Security.Claims;
 using FileLink.Common.Jwt;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 namespace FileLink.Common;
@@ -8,14 +9,14 @@ namespace FileLink.Common;
 public static class AuthExtensions
 {
     public static AuthenticationBuilder UseFileLinkJwtAuth(this AuthenticationBuilder builder,
-                                                          JwtAuthSettings jwtSettings,
+                                                          AuthSettings authSettings,
                                                           bool isDevelopment = false
     )
     {
         return builder.AddJwtBearer("LLJwtAuth",
                                     options =>
                                     {
-                                        options.ClaimsIssuer = jwtSettings.ValidIssuer;
+                                        options.ClaimsIssuer = authSettings.Issuer;
                                         if (isDevelopment)
                                         {
                                             options.IncludeErrorDetails = true;
@@ -30,9 +31,9 @@ public static class AuthExtensions
                                             ValidateAudience = true,
                                             ValidateLifetime = true,
                                             ValidateIssuerSigningKey = true,
-                                            ValidIssuer = jwtSettings.ValidIssuer,
-                                            ValidAudience = jwtSettings.ValidAudience,
-                                            IssuerSigningKey = jwtSettings.SymmetricSecurityKey,
+                                            ValidIssuer = authSettings.Issuer,
+                                            ValidAudience = authSettings.Audience,
+                                            IssuerSigningKey = authSettings.SymmetricSecurityKey,
                                             NameClaimType = ClaimTypes.NameIdentifier,
                                             LifetimeValidator =
                                                 (notBefore, expires, securityToken, validationParameters) =>
@@ -40,6 +41,22 @@ public static class AuthExtensions
                                                     return notBefore <= DateTime.UtcNow &&
                                                            expires >= DateTime.UtcNow;
                                                 }
+                                        };
+                                        options.Events = new JwtBearerEvents
+                                        {
+                                            OnMessageReceived = context =>
+                                            {
+                                                var accessToken = context.Request.Query["access_token"];
+
+                                                // If the request is for our hub...
+                                                var path = context.HttpContext.Request.Path;
+                                                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hub/"))
+                                                {
+                                                    // Read the token out of the query string
+                                                    context.Token = accessToken;
+                                                }
+                                                return Task.CompletedTask;
+                                            }
                                         };
                                     });
     }

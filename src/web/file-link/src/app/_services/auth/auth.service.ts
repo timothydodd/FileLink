@@ -12,12 +12,11 @@ export class AuthService {
     return this.jwtAuthProvider.isAuthenticated$;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  getTokenSilently$(options?: any, redirect?: string): Observable<TokenInfo | null> {
+  getTokenSilently$(options?: any): Observable<TokenInfo | null> {
     return this.jwtAuthProvider.getTokenSilently$(options);
   }
-  setToken(token: string) {
-    return this.jwtAuthProvider.setupToken(token);
+  setToken(token: string, refreshToken: string, expiresIn: number) {
+    return this.jwtAuthProvider.setupToken(token, refreshToken, expiresIn);
   }
   logout(redirect: string = '/') {
     this.logOutEvent.emit(true);

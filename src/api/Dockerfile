@@ -46,7 +46,26 @@ RUN dotnet publish "FileLink.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:
 
 # Final runtime image
 FROM base AS final
-
+USER root
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "FileLink.dll"]
+
+
+# Create directories with proper permissions
+RUN mkdir -p /app/wwwroot /app/data/db && \
+    chown -R app:app /app/wwwroot /app/data /app/data/db
+
+# Copy and fix the script
+RUN chmod +x /app/generate-env-config.sh && \
+    chown app:app /app/generate-env-config.sh
+
+
+# Environment variables with default values
+# ENV API_URL="https://na.robododd.com"
+# ENV Auth__ClientId="https://na.robododd.com."
+# ENV Auth__Audience="default-audience"
+# ENV Auth_Use_Local_Storage="true"
+
+USER app
+# Run the script to generate env config before starting the application
+ENTRYPOINT ["/bin/bash", "/app/generate-env-config.sh"]

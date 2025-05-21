@@ -14,23 +14,42 @@ const CUSTOM_VALUE_ACCESSOR: any = {
   imports: [CommonModule, FormsModule, ReactiveFormsModule],
   providers: [CUSTOM_VALUE_ACCESSOR],
   template: `
-<div class="checkbox-wrapper-33"><label class="checkbox">
-<input class="checkbox__trigger visuallyhidden" type="checkbox"  [disabled]="disabled()" [(ngModel)]="checked" (change)="change($event)"/><span class="checkbox__symbol">
-<svg aria-hidden="true" class="icon-checkbox" width="28px" height="28px" viewBox="0 0 28 28" version="1" xmlns="http://www.w3.org/2000/svg">
-<path d="M4 14l8 7L24 7"></path></svg></span><p class="checkbox__textwrapper">{{label()}}</p></label></div>
+    <div class="checkbox-wrapper-33">
+      <label class="checkbox">
+        <input
+          class="checkbox__trigger visuallyhidden"
+          type="checkbox"
+          [disabled]="disabled()"
+          [(ngModel)]="checked"
+          (change)="change($event)"
+        /><span class="checkbox__symbol">
+          <svg
+            aria-hidden="true"
+            class="icon-checkbox"
+            width="28px"
+            height="28px"
+            viewBox="0 0 28 28"
+            version="1"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path d="M4 14l8 7L24 7"></path>
+          </svg>
+        </span>
+        <p class="checkbox__textwrapper">{{ label() }}</p></label
+      >
+    </div>
   `,
   styleUrl: './check.component.css',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CheckComponent implements ControlValueAccessor {
   constructor() {
-    this.onChange = (_: any) => { };
-    this.onTouched = () => { };
+    this.onChange = (_: any) => {};
+    this.onTouched = () => {};
   }
 
-
   @Input()
-  checked = false
+  checked = false;
   disabled = input(false);
   label = input('Checkbox');
   @Output()

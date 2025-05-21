@@ -23,6 +23,7 @@ import { GuestSettingModalComponent } from '../guest-setting-modal/guest-setting
           <div class="dropdown-divider"></div>
         }
         @if (showLinks()) {
+          <button dropdown-item (click)="router.goCreate()">Create Link</button>
           <button dropdown-item routerLink="links" routerLinkActive="active-link">Manage Links</button>
 
           <button dropdown-item (click)="changePasswordModal.show()">Change Password</button>

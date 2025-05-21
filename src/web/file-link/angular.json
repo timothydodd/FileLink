@@ -16,9 +16,7 @@
             "outputPath": "dist/file-link",
             "index": "src/index.html",
             "browser": "src/main.ts",
-            "polyfills": [
-              "zone.js"
-            ],
+            "polyfills": ["zone.js"],
             "tsConfig": "tsconfig.app.json",
             "assets": [
               {
@@ -26,12 +24,8 @@
                 "input": "public"
               }
             ],
-            "styles": [
-              "node_modules/@fancyapps/ui/dist/fancybox/fancybox.css",
-              "src/styles.css"
-            ],
-            "scripts": [
-            ]
+            "styles": ["node_modules/@fancyapps/ui/dist/fancybox/fancybox.css", "src/styles.css"],
+          
           },
           "configurations": {
             "production": {
@@ -54,12 +48,18 @@
                 }
               ],
               "outputHashing": "all"
+      
             },
             "development": {
               "optimization": false,
               "extractLicenses": false,
-              "sourceMap": true
+              "sourceMap": true,
+              "assets": [{
+                "glob": "env-config.js",
+                "input": "src/app"
+              }]
             }
+         
           },
           "defaultConfiguration": "production"
         },

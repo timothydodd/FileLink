@@ -1,17 +1,18 @@
 :root {
   --primary: rgb(51, 193, 159);
   --secondary: rgb(34, 148, 180);
-  --primary-light:rgb(64, 232, 193);
+  --primary-light: rgb(64, 232, 193);
   --danger: rgb(193, 51, 82);
   --light: #dfd3c3;
   --warning: #ebedd1;
   --alert-danger: var(--danger);
-  --border-color: #DFDFDF;
+  --border-color: #cfcece;
   --control-background: #f0ece2;
   --font-color: #012811;
   --title-color: rgba(0, 0, 0, 0.5);
   /* rgba($font-color, 0.5) */
   --green-color: rgb(51, 193, 159);
   --dark-color: #24225b;
-  --hover-color: #86A7FC;
+  --hover-color: #86a7fc;
+  --alt-background: rgb(234, 234, 234);
 }

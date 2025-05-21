@@ -1,21 +1,26 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Injectable } from '@angular/core';
-import { environment } from '../../../environments/environment';
+import { inject, Injectable } from '@angular/core';
 import { InterceptorHttpParams } from '../auth/auth-interceptor.service';
+import { ConfigService } from '../config.service';
 
 @Injectable({ providedIn: 'root' })
 export class AuthLinkService {
-  constructor(private http: HttpClient) {}
+  private configService = inject(ConfigService);
+  private http = inject(HttpClient);
   login(code: string) {
     const params = new InterceptorHttpParams({ noToken: true });
-    return this.http.post<LoginResponse>(`${environment.apiUrl}/api/auth/login`, { code: code } as LoginRequest, {
-      params,
-    });
+    return this.http.post<LoginResponse>(
+      `${this.configService.apiUrl}/api/auth/login`,
+      { code: code } as LoginRequest,
+      {
+        params,
+      }
+    );
   }
   loginAdmin(userName: string, password: string) {
     const params = new InterceptorHttpParams({ noToken: true });
     return this.http.post<LoginResponse>(
-      `${environment.apiUrl}/api/auth/admin/login`,
+      `${this.configService.apiUrl}/api/auth/admin/login`,
       { userName, password } as LoginAdminRequest,
       {
         params,
@@ -23,23 +28,23 @@ export class AuthLinkService {
     );
   }
   changePassword(currentPassword: string | null | undefined, newPassword: string | null | undefined) {
-    return this.http.post(`${environment.apiUrl}/api/auth/change-password`, {
+    return this.http.post(`${this.configService.apiUrl}/api/auth/change-password`, {
       oldPassword: currentPassword,
       newPassword: newPassword,
     } as ChangePasswordRequest);
   }
   getMyCode() {
-    return this.http.get<GetCodeResponse>(`${environment.apiUrl}/api/auth/code`);
+    return this.http.get<GetCodeResponse>(`${this.configService.apiUrl}/api/auth/code`);
   }
   getShareLink(groupId: string, reroll: boolean = false, hoursValid: number | null = null) {
     let params = new HttpParams().set('reroll', reroll);
     if (hoursValid !== null) {
       params = params.set('hoursValid', hoursValid);
     }
-    return this.http.get<LoginRequest>(`${environment.apiUrl}/api/auth/group/${groupId}/link`, { params });
+    return this.http.get<LoginRequest>(`${this.configService.apiUrl}/api/auth/group/${groupId}/link`, { params });
   }
   getLinks() {
-    return this.http.get<LinkListItem[]>(`${environment.apiUrl}/api/auth/links`);
+    return this.http.get<LinkListItem[]>(`${this.configService.apiUrl}/api/auth/links`);
   }
 }
 export interface GetCodeResponse {
@@ -51,6 +56,8 @@ export interface LoginRequest {
 }
 export interface LoginResponse {
   token: string;
+  refreshToken: string;
+  expiresIn: number;
 }
 export interface LoginAdminRequest {
   userName: string;

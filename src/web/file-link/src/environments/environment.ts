@@ -11,7 +11,7 @@ export const environment = {
   auth: {
     clientId: 'filelink',
     audience: 'https://www.filelink.com',
-    useLocalStorage: 'true',
+    useLocalStorage: true,
   },
 };
 

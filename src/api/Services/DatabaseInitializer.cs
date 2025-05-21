@@ -22,6 +22,7 @@ public class DatabaseInitializer
             db.CreateTableIfNotExists<UploadItem>();
             db.CreateTableIfNotExists<UploadGroup>();
             db.CreateTableIfNotExists<LinkCode>();
+            db.CreateTableIfNotExists<RefreshToken>();
             if (db.CreateTableIfNotExists<AppUser>())
             {
                 var user = new AppUser

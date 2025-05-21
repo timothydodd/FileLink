@@ -20,11 +20,12 @@ export class ModalService {
         this.close();
       });
   }
-  open(title: string, body?: TemplateRef<any>, footer?: TemplateRef<any>) {
+  open(title: string, body?: TemplateRef<any>, footer?: TemplateRef<any>, size: 'sm' | 'lg' | 'xl' = 'sm') {
     this.modalEvent.next({
       title,
       bodyTemplate: body,
       footerTemplate: footer,
+      size,
     });
   }
   close() {
@@ -36,4 +37,5 @@ export interface ModalData {
   title: string;
   bodyTemplate?: TemplateRef<any>;
   footerTemplate?: TemplateRef<any>;
+  size?: 'sm' | 'lg' | 'xl';
 }

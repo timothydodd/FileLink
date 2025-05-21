@@ -1,7 +1,7 @@
 import { animate, state, style, transition, trigger } from '@angular/animations';
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { ToastService } from '../../_services/toast.service';
+import { ToastService } from '../../../_services/toast.service';
 @Component({
   selector: 'app-toast',
   imports: [CommonModule],

@@ -1,23 +1,29 @@
 import { HttpClient } from '@angular/common/http';
-import { Inject, Injectable, inject } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { BehaviorSubject, Observable, from, map, of, tap } from 'rxjs';
-import { environment } from '../../../../environments/environment';
-import { JwtUrlParser } from '../_helpers/jwt-url-parser';
-import { createQueryParams } from '../_helpers/util';
 import { AuthCacheManager } from '../cache/auth-cache-manager';
 import { CacheKey, IAuthCache, InMemoryCache, LocalStorageCache } from '../cache/auth-cache.localstorage';
 import { TokenUser } from '../token-user';
 import { TokenInfo } from './auth0-provider';
-import { AuthConfigService, JwtAuthConfig, SilentTokenOptions } from './jwt-auth-provider.config';
+import { SilentTokenOptions } from './jwt-auth-provider.config';
 
 import { Constants } from '../../../_helpers/constants';
+import { ConfigService } from '../../config.service';
 import { UserPreferenceService } from '../../user-prefrences.service';
+import { JwtUrlParser } from '../_helpers/jwt-url-parser';
+import { AuthClaims, AuthConstants } from '../auth-contants';
+import { InterceptorHttpParams } from '../auth-interceptor.service';
 
 type CacheLocation = 'memory' | 'localstorage';
 
 @Injectable({ providedIn: 'root' })
 export class JwtAuthProvider {
+  private configService = inject(ConfigService);
+  userPref = inject(UserPreferenceService);
+  private jwtUrlParser = inject(JwtUrlParser);
+  private router = inject(Router);
+  private http = inject(HttpClient);
   private readonly _cacheManager: AuthCacheManager;
   private _cacheLocation: CacheLocation;
 
@@ -35,15 +41,9 @@ export class JwtAuthProvider {
     throw new Error(`Invalid cache location "${location}"`);
   };
 
-  userPref = inject(UserPreferenceService);
-  constructor(
-    private jwtUrlParser: JwtUrlParser,
-    private router: Router,
-    private http: HttpClient,
-    @Inject(AuthConfigService) private options?: JwtAuthConfig
-  ) {
+  constructor() {
     this._token = null;
-    this._cacheLocation = options?.useLocalStorage ? 'localstorage' : 'memory';
+    this._cacheLocation = this.configService.useLocalStorage ? 'localstorage' : 'memory';
     var cachePref = this.userPref.get(Constants.UserPrefKeys.authCacheLocation);
     if (cachePref === 'memory' || cachePref === 'localstorage') this._cacheLocation = <CacheLocation>cachePref;
     else this.userPref.set(Constants.UserPrefKeys.authCacheLocation, this._cacheLocation);
@@ -66,12 +66,12 @@ export class JwtAuthProvider {
     );
   }
 
-  setupToken(token: string) {
+  setupToken(token: string, refreshToken: string, expiresIn: number) {
     if (token) {
       const t = this.jwtUrlParser.parse(token);
 
       if (t) {
-        this.set(token, null, null, null);
+        this.set(token, refreshToken, expiresIn, null);
         const user = this.parseUser();
         return user;
       }
@@ -86,13 +86,14 @@ export class JwtAuthProvider {
     return of(true);
   }
   tokenInCache() {
-    const clientId = environment.auth.clientId;
-    const audience = environment.auth.audience;
+    const clientId = this.configService.clientId;
+    const audience = this.configService.audience;
     const entry = this._getEntryFromCache({
       scope: null,
       audience: audience,
       client_id: clientId,
     });
+
     if (entry) {
       this._token = entry;
       this.ParseToken();
@@ -106,10 +107,15 @@ export class JwtAuthProvider {
   handleRedirectCallback() {
     throw new Error('Method not implemented.');
   }
+
   getTokenSilently$(options: SilentTokenOptions): Observable<TokenInfo> {
     return this._getTokenSilently(options).pipe(
       map((accessToken) => {
-        this._token = accessToken;
+        if (this._token !== accessToken) {
+          this._token = accessToken;
+          this.ParseToken();
+        }
+
         return {
           token: accessToken,
           authType: 'PJWT',
@@ -167,19 +173,19 @@ export class JwtAuthProvider {
     if (this._tokenDecoded) {
       const t = this._tokenDecoded;
       let scope = null;
-      const scopeClaim = t['https://filelink.com/scope'];
+      const scopeClaim = t[AuthClaims.SCOPE];
       if (scopeClaim) {
         scope = JSON.parse(scopeClaim);
       }
       const user = {
         externalAuthId: null,
-        appUserId: t['https://filelink.com/app_user_id'],
+        appUserId: t[AuthClaims.USER_ID],
         email: t['email'],
         name: t['name'],
         avatarUrl: null,
         scope,
-        groupId: t['https://filelink.com/group_id'],
-        role: t['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'],
+        groupId: t[AuthClaims.GROUP_ID],
+        role: t[AuthClaims.ROLE],
       } as TokenUser;
       this.tokenUser.next(user);
       return user;
@@ -194,17 +200,18 @@ export class JwtAuthProvider {
   }
 
   set(accessToken: string, refreshToken: string | null, expiresIn: number | null, scope: string | null) {
-    if (!this.options?.clientId) throw new Error('Missing client id');
-    if (!this.options.audience) throw new Error('Missing audience');
+    if (!this.configService?.clientId) throw new Error('Missing client id');
+    if (!this.configService.audience) throw new Error('Missing audience');
 
     this._cacheManager.set({
       access_token: accessToken,
       refresh_token: refreshToken,
       expires_in: expiresIn ? expiresIn : 1000000,
-      client_id: this.options.clientId,
-      scope: this.options.scope ?? null,
-      audience: this.options.audience,
+      client_id: this.configService.clientId,
+      scope: null,
+      audience: this.configService.audience,
       oauthTokenScope: scope,
+      expired_access_token: null,
     });
     this._token = accessToken;
     this.ParseToken();
@@ -228,64 +235,59 @@ export class JwtAuthProvider {
   }
 
   _getTokenSilently(options: SilentTokenOptions): Observable<string> {
-    if (!this.options?.clientId) throw new Error('Missing client id');
+    if (!this.configService?.clientId) throw new Error('Missing client id');
 
-    if (!this.options.audience) throw new Error('Missing audience');
+    if (!this.configService.audience) throw new Error('Missing audience');
 
     const entry = this._getEntryFromCache({
       scope: options?.scope,
-      audience: this.options.audience,
-      client_id: this.options.clientId,
+      audience: this.configService.audience,
+      client_id: this.configService.clientId,
     });
 
     if (entry) {
       return of(entry);
     }
 
-    const authResult = this._getTokenUsingRefreshToken(options).pipe(
+    const authResult = this._getTokenUsingRefreshToken().pipe(
       tap((t) => {
-        this.set(t.access_token, t.refresh_token, t.expires_in, t.scope);
+        this.set(t.accessToken, t.refreshToken, t.expiresIn, null);
       }),
-      map((t) => t.access_token)
+      map((t) => t.accessToken)
     );
 
     return authResult;
   }
 
-  _getTokenUsingRefreshToken(options: SilentTokenOptions) {
-    if (!this.options?.clientId) throw new Error('Missing client id');
+  _getTokenUsingRefreshToken() {
+    if (!this.configService?.clientId) throw new Error('Missing client id');
 
-    if (!this.options.audience) throw new Error('Missing audience');
+    if (!this.configService.audience) throw new Error('Missing audience');
 
     const cache = this._cacheManager.get(
       new CacheKey({
-        audience: this.options.audience,
-        client_id: this.options.clientId,
+        audience: this.configService.audience,
+        client_id: this.configService.clientId,
       })
     );
 
     // If you don't have a refresh token in memory throw error
     if (!cache) {
-      throw new Error(`Missing Refresh Token (audience: ${this.options.audience})`);
+      throw new Error(`Missing Refresh Token (audience: ${this.configService.audience})`);
     }
-
-    const { audience } = this.options;
-
-    const body = createQueryParams({
-      audience,
-      client_id: this.options.clientId,
-      grant_type: 'refresh_token',
-      refresh_token: cache && cache.refresh_token,
-    });
-
+    if (!cache.expired_access_token) {
+      throw new Error(`Missing Expired Access Token (audience: ${this.configService.audience})`);
+    }
+    const body = {
+      expiredAccessToken: cache.expired_access_token,
+      refreshToken: cache.refresh_token,
+    };
+    console.info('Refreshing token');
+    const params = new InterceptorHttpParams({ noToken: true });
     const tokenResponse: Observable<AuthTokenEndpointResponse> = this.http.post<AuthTokenEndpointResponse>(
-      `${environment.apiUrl}/oauth/token`,
+      `${this.configService.apiUrl}${AuthConstants.AUTH_REFRESH_URL}`,
       body,
-      {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-      }
+      { params: params }
     );
 
     return tokenResponse;
@@ -308,10 +310,9 @@ export class JwtAuthProvider {
 }
 
 export type AuthTokenEndpointResponse = {
-  access_token: string;
-  refresh_token: string | null;
-  expires_in: number;
-  scope: string | null;
+  accessToken: string;
+  refreshToken: string | null;
+  expiresIn: number;
 };
 export interface IJwtInfo {
   [key: string]: string;

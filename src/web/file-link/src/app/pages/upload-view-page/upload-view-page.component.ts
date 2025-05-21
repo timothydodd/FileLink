@@ -16,8 +16,10 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { Fancybox } from '@fancyapps/ui';
 import { LucideAngularModule } from 'lucide-angular';
-import { tap } from 'rxjs';
+import { switchMap, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { SkeletonComponent } from '../../_components/common/skeleton/skeleton';
+import { LocalFilesModalComponent } from '../../_components/local-file-modal/local-files-modal.component';
 import { ShareLinkDisplayComponent } from '../../_components/share-link-display/share-link-display.component';
 import {
   IUploadItem,
@@ -27,96 +29,121 @@ import {
 import { AuthService } from '../../_services/auth/auth.service';
 import { TokenUser } from '../../_services/auth/token-user';
 import { FileTypeIconService } from '../../_services/file-icon.service';
+import { SignalRService } from '../../_services/signalr.service';
 import { ToolbarService } from '../../_services/toolbar.service';
 import { UserPreferenceService } from '../../_services/user-prefrences.service';
-import { UploadItemResponse, UploadService } from '../../_services/web-api/upload.service';
+import { LocalFile, UploadItemResponse, UploadService } from '../../_services/web-api/upload.service';
 
 @Component({
   standalone: true,
-  imports: [CommonModule, ShareLinkDisplayComponent, LucideAngularModule, UploadItemsComponent],
+  imports: [
+    CommonModule,
+    ShareLinkDisplayComponent,
+    LucideAngularModule,
+    UploadItemsComponent,
+    LocalFilesModalComponent,
+    SkeletonComponent,
+  ],
   template: `
-    <div class="buttons">
-      @for (item of cardButtons(); track $index) {
-        <div class="card-down" [ngClass]="{ image: item.mediaType === mediaType.Image }">
-          @if (item.imageType === ImageType.Image) {
-            <a
-              class="item img-wrap"
-              [href]="item.url"
-              [attr.data-fancybox]="item.mediaType === mediaType.Image ? 'gallery' : undefined"
-            >
-              @if (item.mediaType === mediaType.Image) {
-                <img [src]="item.imageSrc!" [alt]="item.title" />
-              } @else {
-                <img [src]="item.imageSrc!" [alt]="item.title" />
-              }
-              <div class="overlay">
-                <lucide-angular
-                  [name]="item.mediaType === mediaType.Image ? 'eye' : 'download'"
-                  size="60"
-                ></lucide-angular>
+    @if (this.files()) {
+      <div class="buttons">
+        @for (item of cardButtons(); track $index) {
+          <div class="card-down" [ngClass]="{ image: item.mediaType === mediaType.Image }">
+            @if (item.imageType === ImageType.Image) {
+              <a
+                class="item img-wrap"
+                [href]="item.url"
+                [attr.data-fancybox]="item.mediaType === mediaType.Image ? 'gallery' : undefined"
+              >
+                @if (item.mediaType === mediaType.Image) {
+                  <img [src]="item.imageSrc!" [alt]="item.title" />
+                } @else {
+                  <img [src]="item.imageSrc!" [alt]="item.title" />
+                }
+                <div class="overlay">
+                  <lucide-angular
+                    [name]="item.mediaType === mediaType.Image ? 'eye' : 'download'"
+                    size="60"
+                  ></lucide-angular>
+                </div>
+              </a>
+              <div class="info-panel">
+                <div class="flex-row">
+                  <div class="title">{{ item.title }}</div>
+                </div>
+                @if (item.title2) {
+                  <div class="title2">{{ item.title2 }}</div>
+                }
+                @if (item.year) {
+                  <div class="flex-row justify-content-between">
+                    <div class="info">{{ item.year }}</div>
+                  </div>
+                }
+                @if (item.season && item.episode) {
+                  <div class="flex-row" style="gap: 3px;">
+                    <div class="info">S{{ item.season }}</div>
+                    <div class="info">-</div>
+                    <div class="info">E{{ item.episode }}</div>
+                  </div>
+                }
+                <div class="flex-row justify-content-between">
+                  <div class="info small">{{ item.size }}</div>
+                </div>
               </div>
-            </a>
-            <div class="info-panel">
+            } @else if (item.imageType === ImageType.Icon) {
+              <a class="item icon-wrap" [href]="item.url" target="_blank" rel="noreferrer">
+                <lucide-angular [name]="item.imageSrc!" [size]="48"></lucide-angular>
+                <div class="overlay">
+                  <lucide-angular name="download" size="60"></lucide-angular>
+                </div>
+              </a>
               <div class="flex-row">
                 <div class="title">{{ item.title }}</div>
               </div>
-              @if (item.title2) {
-                <div class="title2">{{ item.title2 }}</div>
-              }
-              @if (item.year) {
-                <div class="flex-row justify-content-between">
-                  <div class="info">{{ item.year }}</div>
-                </div>
-              }
-              @if (item.season && item.episode) {
-                <div class="flex-row" style="gap: 3px;">
-                  <div class="info">S{{ item.season }}</div>
-                  <div class="info">-</div>
-                  <div class="info">E{{ item.episode }}</div>
-                </div>
-              }
               <div class="flex-row justify-content-between">
                 <div class="info small">{{ item.size }}</div>
               </div>
-            </div>
-          } @else if (item.imageType === ImageType.Icon) {
-            <a class="item icon-wrap" [href]="item.url" target="_blank" rel="noreferrer">
-              <lucide-angular [name]="item.imageSrc!" [size]="48"></lucide-angular>
-              <div class="overlay">
-                <lucide-angular name="download" size="60"></lucide-angular>
-              </div>
-            </a>
-            <div class="flex-row">
-              <div class="title">{{ item.title }}</div>
-            </div>
-            <div class="flex-row justify-content-between">
-              <div class="info small">{{ item.size }}</div>
-            </div>
-          }
-        </div>
-      }
-      @if (this.isEditor()) {
-        <button class="btn-no-border" (click)="upload()">
-          <div class="item add-button">
-            <lucide-angular name="plus" [size]="48"></lucide-angular>
+            }
           </div>
-        </button>
+        }
+      </div>
+      @if (isEditor()) {
+        <app-upload-items
+          #uploads
+          [(attachments)]="attachments"
+          (statusChanged)="uploadItemsChanged($event)"
+          [showDragArea]="false"
+        ></app-upload-items>
+        @if (localFilesEnabled()) {
+          <app-local-files-modal #localFilesModal (attachFilesEvent)="attachItems($event)"></app-local-files-modal>
+        }
       }
-    </div>
-    @if (this.isEditor()) {
-      <lib-upload-items
-        #uploads
-        [(attachments)]="attachments"
-        (statusChanged)="uploadItemsChanged($event)"
-        [showDragArea]="false"
-      ></lib-upload-items>
-    }
 
-    <ng-template #sharedLink>
-      <app-share-link-display [groupId]="groupId()"></app-share-link-display>
-    </ng-template>
+      <ng-template #sharedLink>
+        <app-share-link-display [groupId]="groupId()">
+          <div class="sep"></div>
+          <div class="flex-row gap10">
+            <button class="btn btn-icon" (click)="upload()">
+              <lucide-angular name="cloud-upload" title="Upload File" [size]="16"></lucide-angular>
+            </button>
+            @if (localFilesEnabled()) {
+              <button class="btn btn-icon" title="Attach Host File" (click)="localFiles()!.show()">
+                <lucide-angular name="paperclip" [size]="16"></lucide-angular>
+              </button>
+            }
+          </div>
+        </app-share-link-display>
+      </ng-template>
+    } @else {
+      <div class="buttons">
+        <lib-skeleton width="165px" height="247px"></lib-skeleton>
+        <lib-skeleton width="165px" height="247px"></lib-skeleton>
+        <lib-skeleton width="165px" height="247px"></lib-skeleton>
+        <lib-skeleton width="165px" height="247px"></lib-skeleton>
+      </div>
+    }
   `,
-  styleUrl: './upload-view-page.component.css',
+  styleUrl: './upload-view-page.component.scss',
 })
 export class UploadViewPageComponent implements OnDestroy, AfterViewInit {
   elementRef = inject(ElementRef);
@@ -128,11 +155,13 @@ export class UploadViewPageComponent implements OnDestroy, AfterViewInit {
   uploadService = inject(UploadService);
   destroyRef = inject(DestroyRef);
   uploads = viewChild<UploadItemsComponent>('uploads');
+  localFiles = viewChild<LocalFilesModalComponent>('localFilesModal');
   sharedLink = viewChild<TemplateRef<any>>('sharedLink');
-  files = signal<UploadItemResponse[]>([]);
+  files = signal<UploadItemResponse[] | null>(null);
   ImageType = ImageType;
   attachments = signal<IUploadItem[]>([]);
   tokenUser = signal<TokenUser | null>(null);
+  srService = inject(SignalRService);
   isEditor = computed(() => {
     return this.tokenUser()?.role === 'Editor' || this.tokenUser()?.role === 'Owner';
   });
@@ -157,7 +186,7 @@ export class UploadViewPageComponent implements OnDestroy, AfterViewInit {
       } as Download;
     });
   });
-
+  localFilesEnabled = signal(false);
   constructor() {
     effect(() => {
       var sharedLink = this.sharedLink();
@@ -187,6 +216,40 @@ export class UploadViewPageComponent implements OnDestroy, AfterViewInit {
         })
       )
       .subscribe();
+    this.uploadService.getLocalInfo().subscribe((x) => {
+      this.localFilesEnabled.set(x.hasLocalPaths);
+    });
+    this.srService
+      .startConnection()
+      .pipe(
+        switchMap(() => {
+          console.log('SignalR connection started');
+          return this.srService.joinGroup(this.groupId()!);
+        }),
+        switchMap(() => {
+          return this.srService.listFormItemChange();
+        }),
+        takeUntilDestroyed()
+      )
+      .subscribe((z) => {
+        var files = this.files();
+        if (files) {
+          // find index of item and replace it
+          var index = files.findIndex((x) => x.id === z.id);
+          if (index !== -1) {
+            files[index] = z;
+            this.files.update(() => {
+              return [...files!];
+            });
+          } else {
+            // add new item
+            files.push(z);
+            this.files.update(() => {
+              return [...files!];
+            });
+          }
+        }
+      });
   }
   ngAfterViewInit(): void {
     Fancybox.bind(this.elementRef.nativeElement, '[data-fancybox]');
@@ -199,16 +262,24 @@ export class UploadViewPageComponent implements OnDestroy, AfterViewInit {
       return this.uploadService.create(file, this.groupId()!);
     });
   }
+  attachItems(items: LocalFile[]) {
+    if (items.length === 0) return;
+    this.uploadService.attachLocalFile(this.groupId()!, items).subscribe(() => {
+      this.uploadService.getUploads(this.groupId()!).subscribe((files) => {
+        this.files.set(files);
+      });
+    });
+  }
   uploadItemsChanged(status: UploadItemsStatus) {
     if (!status.uploading) {
       this.attachments.set([]);
+      if (this.groupId === null) {
+        throw new Error('Group ID is null');
+      }
+      this.uploadService.getUploads(this.groupId()!).subscribe((files) => {
+        this.files.set(files);
+      });
     }
-    if (this.groupId === null) {
-      throw new Error('Group ID is null');
-    }
-    this.uploadService.getUploads(this.groupId()!).subscribe((files) => {
-      this.files.set(files);
-    });
   }
   getSourceImage(item: UploadItemResponse) {
     if (item.metadata?.seriesPoster) return environment.apiUrl + '/' + item.metadata.seriesPoster;

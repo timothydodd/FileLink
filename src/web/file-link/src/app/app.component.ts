@@ -1,9 +1,10 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterOutlet } from '@angular/router';
+import { ToastComponent } from './_components/common/toast/toast.component';
 import { MainNavBarComponent } from './_components/main-nav-bar/main-nav-bar.component';
-import { ModalComponent } from './_components/modal/modal.component';
-import { ToastComponent } from './_components/toast/toast.component';
+
+import { ModalComponent } from './_components/common/modal/modal.component';
 import { AuthService } from './_services/auth/auth.service';
 import { TokenUser } from './_services/auth/token-user';
 

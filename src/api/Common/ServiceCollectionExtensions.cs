@@ -56,7 +56,7 @@ public static class ServiceCollectionExtensions
 
     public static IServiceCollection AddJwtAuth(this IServiceCollection services, IConfiguration config, IWebHostEnvironment env, ILogger logger)
     {
-        var jwtAuth = config.GetRequiredConfigurationSection<JwtAuthSettings>("JwtAuthSettings");
+        var jwtAuth = config.GetRequiredConfigurationSection<AuthSettings>("Auth");
         if (string.IsNullOrEmpty(jwtAuth.SecurityKey))
         {
             logger.LogInformation("No JWT key found, generating a new one.");
@@ -79,7 +79,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton(jwtAuth);
         services.AddScoped<JwtService>();
         services.AddScoped<AuthLinkGenerator>();
-        services.AddSingleton(new IssuerConfiguration(new[] { jwtAuth.ValidIssuer! }));
+        services.AddSingleton(new IssuerConfiguration(new[] { jwtAuth.Issuer! }));
         services.AddSingleton<ICurrentPrincipalAccessor, HttpContextCurrentPrincipalAccessor>();
         services.AddAuthentication(opts =>
         {
@@ -92,7 +92,7 @@ public static class ServiceCollectionExtensions
     }
     public static IServiceCollection AddCorsPolicy(this IServiceCollection services, IConfiguration config)
     {
-        var origins = config.GetValue<string>("Domains")?.Split(',');
+        var origins = config.GetValue<string>("AllowedOrigins")?.Split(',');
         services.AddCors(options =>
         {
             options.AddPolicy("Origins", policy =>
@@ -152,10 +152,12 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<PreSignUrlService>();
         services.AddSingleton<UploadItemRepo>();
         services.AddSingleton<UploadGroupRepo>();
+        services.AddSingleton<RefreshTokenRepo>();
         services.AddSingleton<AppUserRepo>();
         services.AddSingleton<LinkCodeRepo>();
         services.AddSingleton<PasswordService>();
         services.AddSingleton<TimedCache>();
+        services.AddSingleton<LocalFileCache>();
         services.AddLogging(logging =>
         {
             logging.AddSimpleConsole(c =>
@@ -165,7 +167,7 @@ public static class ServiceCollectionExtensions
                 c.TimestampFormat = "HH:mm:ss ";
             });
         });
-
+        services.AddSignalR();
         return services;
 
     }
@@ -177,7 +179,7 @@ public static class ServiceCollectionExtensions
             logger.LogInformation("OMDB settings found, registering OMDB plugin.");
             services.AddSingleton(b => omdbSettings);
             services.AddHttpClient<OmdbClient>();
-            services.AddSingleton<MoviePlugin>();
+            services.AddSingleton<IFilePlugin, MoviePlugin>();
         }
         else
         {
@@ -189,8 +191,11 @@ public static class ServiceCollectionExtensions
     {
         services.Configure<FormOptions>(options =>
         {
-            options.MultipartBodyLengthLimit = long.MaxValue; // Allow large files
-            options.BufferBody = false; // Stream instead of buffering entire body
+            options.ValueLengthLimit = int.MaxValue;
+            options.MultipartBodyLengthLimit = long.MaxValue;
+            options.MemoryBufferThreshold = int.MaxValue;
+            // This is the key setting - disable buffering
+            options.BufferBody = false;
         });
 
         webHost.ConfigureKestrel(options =>

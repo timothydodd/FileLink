@@ -157,8 +157,13 @@ public class MoviePlugin : IFilePlugin
             }
             catch (Exception ex)
             {
+                file.Poster = null;
                 _logger.LogError(ex, $"Error downloading poster for {file}");
             }
+        }
+        else
+        {
+            file.Poster = null;
         }
         return file;
     }

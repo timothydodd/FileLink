@@ -15,13 +15,21 @@
 ## 🚀 Getting Started
 
 ### Run with Docker
-
+out of the box
 ```bash
-docker run -d \
-  -p 8080:80 \
-  -v ./filelink-data:/app/data \
-  --name filelink \
-  robododd/filelink:latest
+docker run -d -p 8080:8080 timdoddcool/filelink
+```
+
+Advanced Configurations
+```bash
+docker run -d -p 8080:8080 -v C:\local-shares\:/app/external \
+-e StorageSettings__LocalSharedPaths__0=/app/external/ \
+-e OmdbSettings__ApiKey=my-key file-link \
+-e API_URL=https://your-domain.com \
+-e Auth__ClientId=your-client-id \
+-e Auth__Audience=your-domain.com \
+-e AUTH_USE_LOCAL_STORAGE=true \
+timdoddcool/filelink
 ```
 
 > Visit `http://localhost:8080` after it starts.
@@ -31,18 +39,18 @@ You can run the project straight out of the box without any configuration or you
 
 | Variable                                   | Description                  | Default                    |
 | ------------------------------------------ | ---------------------------- | -------------------------- |
-| `STORAGESETTINGS__SHAREDFILESPATH`         | Path to store uploaded files | `data/files`               |
-| `STORAGESETTINGS__DATABASEFILESPATH`       | Path to store database files | `data/db`                  |
-| `DATABASETYPE`                             | `sqlite` or `mysql`          | `sqlite`                   |
-| `CONNECTIONSTRINGS__DEFAULTCONNECTION`     | MySQL connection string      | See config                 |
-| `BASEDOMAIN`                               | Base URL of instance         | `https://localhost:7065`   |
-| `JWTAUTHSETTINGS__VALIDISSUER`             | JWT issuer                   | `https://www.filelink.com` |
-| `JWTAUTHSETTINGS__VALIDAUDIENCE`           | JWT audience                 | `https://www.filelink.com` |
-| `JWTAUTHSETTINGS__CLIENTID`                | JWT client ID                | `filelink`                 |
-| `OMDBSETTINGS__APIKEY`                     | OMDb API key for metadata    | *unset*                    |
-| `OMDBSETTINGS__BASEURL`                    | OMDb API base URL            | `https://www.omdbapi.com/` |
-| `LOGGING__LOGLEVEL__DEFAULT`               | Default logging level        | `Information`              |
-| `LOGGING__LOGLEVEL__MICROSOFT__ASPNETCORE` | ASP.NET Core log level       | `Warning`                  |
+| `StorageSettings__SharedFilesPath`         | Path to store uploaded files | `data/files`               |
+| `StorageSettings__DatabaseFilesPath`       | Path to store database files | `data/db`                  |
+| `StorageSettings__LocalSharedPaths`       | Local files to share, is an array use StorageSettings__LocalSharedPaths_0, StorageSettings__LocalSharedPaths_1 ect  | null                 |
+| `DatabaseType`                             | `sqlite` or `mysql`          | `sqlite`                   |
+| `ConnectionStrings__DefaultConnection`     | MySQL connection string (not needed for sqlite)     | See config                 |
+| `Auth__ClientId`             | JWT issuer                   | `https://www.filelink.com` |
+| `Auth__Audience`           | JWT audience                 | `https://www.filelink.com` |
+| `Auth__ClientId`                | JWT client ID                | `filelink`                 |
+| `Auth__RefreshTokenExpiryInDays`                | How many days does your Refresh Token Last              | `15`                 |
+| `Auth__AccessTokenExpiryInMinutes`                | How many minutes does your Access token last             | `15`                 |
+| `OmdbSettings__ApiKey`                     | OMDb API key for metadata    | *unset*                    |
+| `Logging__LogLevel`               | Default logging level        | `Information`              |
 
 > **Note:** The admin login uses fixed credentials:
 >

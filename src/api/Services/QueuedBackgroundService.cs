@@ -1,6 +1,12 @@
-﻿using System.Threading.Channels;
+﻿using System.Text.Json;
+using System.Threading.Channels;
+using FileLink.Controllers;
+using FileLink.Hubs;
 using FileLink.Plugin;
 using FileLink.Repos;
+using Microsoft.AspNetCore.Http.Json;
+using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Options;
 
 namespace FileLink.Services;
 
@@ -28,38 +34,59 @@ public class QueuedBackgroundService : BackgroundService
         }
     }
 }
-public class BackgroundTaskQueue
+public class VoidBackgroundTaskQueue : IBackgroundTaskQueue
 {
+    public ValueTask QueueFileProcessAsync(UploadItem item) => new ValueTask();
+    public Channel<WorkItem> GetChannel() => throw new NotImplementedException();
+}
+public class BackgroundTaskQueue : IBackgroundTaskQueue
+{
+    private readonly IHubContext<UploadItemHub> _hubContext;
     private readonly Channel<WorkItem> _queue;
-    private readonly MoviePlugin _moviePlugin;
+    private readonly IEnumerable<IFilePlugin> _filePlugins;
     private readonly ILogger<BackgroundTaskQueue> _logger;
-    public BackgroundTaskQueue(MoviePlugin moviePlugin, ILogger<BackgroundTaskQueue> logger)
+    private readonly PreSignUrlService _preSignUrlService;
+    private readonly JsonSerializerOptions _options;
+    public BackgroundTaskQueue(IEnumerable<IFilePlugin> filePlugins, ILogger<BackgroundTaskQueue> logger, IHubContext<UploadItemHub> hubContext, PreSignUrlService preSignUrlService, IOptions<JsonOptions> jsonOptions)
     {
         _queue = Channel.CreateUnbounded<WorkItem>();
-        _moviePlugin = moviePlugin;
+        _filePlugins = filePlugins;
         _logger = logger;
+        _hubContext = hubContext;
+        _preSignUrlService = preSignUrlService;
+        _options = jsonOptions.Value.SerializerOptions;
     }
 
-    public ValueTask QueueFileProcessAsync(UploadItem item)
+    public async ValueTask QueueFileProcessAsync(UploadItem item)
     {
-        if (_moviePlugin.HasFileType(Path.GetExtension(item.FileName)))
+        foreach (var plugin in _filePlugins)
         {
-            var workItem = new WorkItem
+
+            if (plugin.HasFileType(Path.GetExtension(item.FileName)))
             {
-                Action = async token =>
+                var workItem = new WorkItem
                 {
-                    _logger.LogInformation("Processing file: {FileName}", item.FileName);
-                    await _moviePlugin.Process(item);
-                    _logger.LogInformation("Finished processing file: {FileName}", item.FileName);
-                }
-            };
-            return _queue.Writer.WriteAsync(workItem);
+                    Action = async token =>
+                    {
+                        _logger.LogInformation("Processing with plugin: {PluginName}", plugin.GetType().Name);
+
+                        _logger.LogInformation("Processing file: {FileName}", item.FileName);
+
+                        await plugin.Process(item);
+
+                        var uploadItemResponse = UploadItemResponse.FromUploadItem(_preSignUrlService, item);
+                        var options = new JsonSerializerOptions() { WriteIndented = false, };
+                        await _hubContext.Clients.Group(item.GroupId.ToString()).SendAsync("UploadItemChanged", JsonSerializer.Serialize(uploadItemResponse, _options));
+                        _logger.LogInformation("Finished processing file: {FileName}", item.FileName);
+                    }
+                };
+                await _queue.Writer.WriteAsync(workItem);
+            }
+            else
+            {
+                _logger.LogInformation("Skipping file: {FileName}", item.FileName);
+            }
         }
-        else
-        {
-            _logger.LogInformation("Skipping file: {FileName}", item.FileName);
-        }
-        return new ValueTask();
     }
 
     public Channel<WorkItem> GetChannel() => _queue;

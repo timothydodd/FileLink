@@ -4,7 +4,7 @@ import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { LucideAngularModule } from 'lucide-angular';
 import { ToastService } from '../../_services/toast.service';
 import { AuthLinkService } from '../../_services/web-api/auth-link.service';
-import { ModalService } from '../modal/modal.service';
+import { ModalService } from '../common/modal/modal.service';
 
 @Component({
   standalone: true,
@@ -70,7 +70,6 @@ export class ChangePasswordModalComponent {
   changePassword() {
     this.authService.changePassword(this.currentPassword(), this.newPassword()).subscribe({
       next: () => {
-        debugger;
         this.toastr.success('Password changed successfully');
         this.modalService.close();
       },

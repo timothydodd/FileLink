@@ -39,6 +39,7 @@ import {
   Globe,
   GripVertical,
   LucideAngularModule,
+  Paperclip,
   PenLine,
   Plus,
   RefreshCw,
@@ -48,9 +49,7 @@ import {
   Terminal,
   X,
 } from 'lucide-angular';
-import { environment } from '../environments/environment';
 import { AuthInterceptorService } from './_services/auth/auth-interceptor.service';
-import { AuthConfigService } from './_services/auth/providers/jwt-auth-provider.config';
 import { JwtAuthProvider } from './_services/auth/providers/jwt-auth-provider.service';
 import { UserPreferenceService } from './_services/user-prefrences.service';
 import { routes } from './app.routes';
@@ -105,6 +104,7 @@ export const appConfig: ApplicationConfig = {
         Terminal,
         FileType,
         Disc,
+        Paperclip,
       })
     ),
     provideAnimations(),
@@ -115,17 +115,5 @@ export const appConfig: ApplicationConfig = {
       multi: true,
     },
     JwtAuthProvider,
-    {
-      provide: AuthConfigService,
-      useValue: {
-        clientId: environment.auth.clientId,
-        audience: environment.auth.audience,
-        useLocalStorage: environment.auth.useLocalStorage === 'true' ? true : false,
-        // The http interceptor configuration
-        httpInterceptor: {
-          allowedList: ['/api/*'],
-        },
-      },
-    },
   ],
 };
