@@ -213,12 +213,17 @@ export class UploadViewPageComponent implements OnDestroy, AfterViewInit {
       .pipe(
         tap((x) => {
           this.tokenUser.set(x);
+          if (x.role === 'Editor' || x.role === 'Owner') {
+            this.startSignalR();
+          }
         })
       )
       .subscribe();
     this.uploadService.getLocalInfo().subscribe((x) => {
       this.localFilesEnabled.set(x.hasLocalPaths);
     });
+  }
+  startSignalR() {
     this.srService
       .startConnection()
       .pipe(
