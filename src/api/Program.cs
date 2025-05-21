@@ -39,7 +39,7 @@ public class Program
         builder.Services
             .AddDatabase(config, logger)
             .AddJwtAuth(config, env, logger)
-            .AddCorsPolicy(config)
+            .AddCorsPolicy(config, logger)
             .AddBackgroundServices()
             .AddCompressionAndCaching()
             .AddApplicationServices()
