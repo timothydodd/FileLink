@@ -90,7 +90,7 @@ public static class ServiceCollectionExtensions
 
         return services;
     }
-    public static IServiceCollection AddCorsPolicy(this IServiceCollection services, IConfiguration config)
+    public static IServiceCollection AddCorsPolicy(this IServiceCollection services, IConfiguration config, ILogger logger)
     {
         var origins = config.GetValue<string>("AllowedOrigins")?.Split(',');
         services.AddCors(options =>
@@ -99,6 +99,7 @@ public static class ServiceCollectionExtensions
             {
                 if (origins is not null)
                 {
+                    logger.LogInformation("CORS policy set to allow origins: {origins}", string.Join(", ", origins));
                     policy.WithOrigins(origins)
                           .AllowAnyHeader()
                           .AllowAnyMethod()
