@@ -82,9 +82,7 @@ export interface LocalInfo {
 }
 export interface LocalFile {
   localPathIndex: number;
-  name: string;
   path: string;
-  size: number | null;
 }
 export interface AddLocalPath {
   localPathIndex: number;

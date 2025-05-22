@@ -110,7 +110,8 @@ export class LocalFilesModalComponent {
       });
       this.localFiles.set(
         files.map((z) => {
-          return { ...z, selected: signal(false) };
+          var fileName = z.path.split('/').pop() ?? '';
+          return { ...z, name: fileName, selected: signal(false) };
         })
       );
     });
@@ -118,4 +119,5 @@ export class LocalFilesModalComponent {
 }
 export interface SelectedLocalFile extends LocalFile {
   selected: WritableSignal<boolean>;
+  name: string;
 }

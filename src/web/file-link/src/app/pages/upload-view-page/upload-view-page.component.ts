@@ -16,7 +16,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { Fancybox } from '@fancyapps/ui';
 import { LucideAngularModule } from 'lucide-angular';
-import { switchMap, tap } from 'rxjs';
+import { of, switchMap, take, tap, timeout } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { SkeletonComponent } from '../../_components/common/skeleton/skeleton';
 import { LocalFilesModalComponent } from '../../_components/local-file-modal/local-files-modal.component';
@@ -225,39 +225,43 @@ export class UploadViewPageComponent implements OnDestroy, AfterViewInit {
     this.uploadService.getLocalInfo().subscribe((x) => {
       this.localFilesEnabled.set(x.hasLocalPaths);
     });
-    setTimeout(() => {
-      this.srService
-        .startConnection()
-        .pipe(
-          switchMap(() => {
-            console.log('SignalR connection started');
-            return this.srService.joinGroup(this.groupId()!);
-          }),
-          switchMap(() => {
-            return this.srService.listFormItemChange();
-          }),
-          takeUntilDestroyed()
+    of(null)
+      .pipe(
+        timeout(2000),
+        take(1),
+        switchMap(() =>
+          this.srService.startConnection().pipe(
+            switchMap(() => {
+              console.log('SignalR connection started');
+              return this.srService.joinGroup(this.groupId()!);
+            }),
+            switchMap(() => {
+              return this.srService.listFormItemChange();
+            }),
+            takeUntilDestroyed()
+          )
         )
-        .subscribe((z) => {
-          var files = this.files();
-          if (files) {
-            // find index of item and replace it
-            var index = files.findIndex((x) => x.id === z.id);
-            if (index !== -1) {
-              files[index] = z;
-              this.files.update(() => {
-                return [...files!];
-              });
-            } else {
-              // add new item
-              files.push(z);
-              this.files.update(() => {
-                return [...files!];
-              });
-            }
+      )
+      .subscribe((z) => {
+        if (!z) return;
+        var files = this.files();
+        if (files) {
+          // find index of item and replace it
+          var index = files.findIndex((x) => x.id === z.id);
+          if (index !== -1) {
+            files[index] = z;
+            this.files.update(() => {
+              return [...files!];
+            });
+          } else {
+            // add new item
+            files.push(z);
+            this.files.update(() => {
+              return [...files!];
+            });
           }
-        });
-    }, 2000);
+        }
+      });
   }
   ngAfterViewInit(): void {
     Fancybox.bind(this.elementRef.nativeElement, '[data-fancybox]');

@@ -62,18 +62,17 @@ public class LocalFileCache
             string? localPath = _storageSettings.LocalSharedPaths[i];
             if (Directory.Exists(localPath))
             {
-                var dirInfo = new DirectoryInfo(localPath);
-                var fileInfos = dirInfo.GetFiles("*", SearchOption.AllDirectories);
-                foreach (var fileInfo in fileInfos)
+
+                var fileInfos = Directory.GetFiles(localPath, "*", SearchOption.AllDirectories);
+                foreach (var f in fileInfos)
                 {
-                    if (!AllowedExtensions.Contains(fileInfo.Extension))
+                    var ext = Path.GetExtension(f);
+                    if (!AllowedExtensions.Contains(ext))
                         continue;
                     files.Add(new LocalFile
                     {
                         LocalPathIndex = i,
-                        Name = fileInfo.Name,
-                        Path = fileInfo.FullName.Substring(localPath.Length),
-                        Size = fileInfo.Length
+                        Path = f.Substring(localPath.Length)
                     });
                 }
             }
@@ -87,9 +86,8 @@ public class LocalFileCache
 public class LocalFile
 {
     public required int LocalPathIndex { get; set; }
-    public required string Name { get; set; }
     public required string Path { get; set; }
-    public long? Size { get; set; }
+
 }
 
 public class LocalInfo
