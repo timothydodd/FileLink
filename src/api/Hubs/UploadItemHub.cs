@@ -21,30 +21,9 @@ public class UploadItemHub : Hub
         }
 
         await base.OnConnectedAsync();
+        await Groups.AddToGroupAsync(Context.ConnectionId, "UploadItemChanges");
     }
 
-    // Method for clients to join a specific job group
-    public async Task JoinGroup(Guid groupId)
-    {
-        var role = Context.GetRole();
-        if (Constants.AuthRoleTypes.Owner != role)
-        {
-
-            Guid? myGroupId = Context.GetGroupIdOrNull();
-            if (myGroupId is null || myGroupId != groupId)
-            {
-                throw new Exception("You do not have permission to access this group.");
-            }
-
-        }
-        await Groups.AddToGroupAsync(Context.ConnectionId, groupId.ToString());
-    }
-
-    // Method for clients to leave a specific job group
-    public async Task LeaveGroup(string groupName)
-    {
-        await Groups.RemoveFromGroupAsync(Context.ConnectionId, groupName);
-    }
 
 
 }

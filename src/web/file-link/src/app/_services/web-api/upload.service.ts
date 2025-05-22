@@ -32,7 +32,7 @@ export class UploadService {
     return this.http.get<LocalInfo>(`${this.configService.apiUrl}/api/file/local/info`);
   }
   getLocalFiles() {
-    return this.http.get<LocalFile[]>(`${this.configService.apiUrl}/api/file/local`);
+    return this.http.get<FileIndexResponse>(`${this.configService.apiUrl}/api/file/local`);
   }
   attachLocalFile(groupId: string, localFiles: AddLocalPath[]) {
     return this.http.put<UploadItemResponse>(
@@ -48,12 +48,19 @@ export interface UploadItem {
   fileName: string;
   createdDate: string;
 }
+export interface FileIndexResponse {
+  indexing: boolean;
+  files: LocalFile[] | null;
+}
 
 export interface GetLinkResponse {
   code: string;
 }
 
 export interface CreateGroupResponse {
+  groupId: string;
+}
+export interface GroupItemChanged extends UploadItemResponse {
   groupId: string;
 }
 export interface UploadItemResponse {

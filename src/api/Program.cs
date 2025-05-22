@@ -76,6 +76,12 @@ public class Program
                     await queue.QueueFileProcessAsync(item);
                 }
             }
+            var localFileCache = scope.ServiceProvider.GetRequiredService<LocalFileCache>();
+            var localInfo = localFileCache.GetInfo();
+            if (localInfo.HasLocalPaths)
+            {
+                await localFileCache.QueueIndexing();
+            }
         }
         // Configure the HTTP request pipeline.
         ConfigureMiddleware(app);

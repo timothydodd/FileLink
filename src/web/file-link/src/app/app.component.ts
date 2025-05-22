@@ -7,6 +7,7 @@ import { MainNavBarComponent } from './_components/main-nav-bar/main-nav-bar.com
 import { ModalComponent } from './_components/common/modal/modal.component';
 import { AuthService } from './_services/auth/auth.service';
 import { TokenUser } from './_services/auth/token-user';
+import { SignalRService } from './_services/signalr.service';
 
 @Component({
   selector: 'app-root',
@@ -18,6 +19,7 @@ export class AppComponent {
   title = 'file-link';
   authService = inject(AuthService);
 
+  srService = inject(SignalRService);
   user = signal<TokenUser | null>(null);
   isLoggedIn = computed(() => {
     return this.user() !== null;
@@ -28,6 +30,15 @@ export class AppComponent {
       .pipe(takeUntilDestroyed())
       .subscribe((x) => {
         this.user.set(x);
+        if (x?.role === 'Owner' || x?.role === 'Editor') {
+          this.startSignalR();
+        }
       });
+  }
+  startSignalR() {
+    this.srService.startConnection().subscribe();
+  }
+  endSignalR() {
+    this.srService.stopConnection();
   }
 }

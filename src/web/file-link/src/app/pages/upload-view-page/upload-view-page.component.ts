@@ -16,7 +16,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { Fancybox } from '@fancyapps/ui';
 import { LucideAngularModule } from 'lucide-angular';
-import { of, switchMap, take, tap, timeout } from 'rxjs';
+import { tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { SkeletonComponent } from '../../_components/common/skeleton/skeleton';
 import { LocalFilesModalComponent } from '../../_components/local-file-modal/local-files-modal.component';
@@ -124,11 +124,11 @@ import { LocalFile, UploadItemResponse, UploadService } from '../../_services/we
           <div class="sep"></div>
           <div class="flex-row gap10">
             <button class="btn btn-icon" (click)="upload()">
-              <lucide-angular name="cloud-upload" title="Upload File" [size]="16"></lucide-angular>
+              <lucide-angular name="cloud-upload" title="Upload File" [size]="18"></lucide-angular>
             </button>
             @if (localFilesEnabled()) {
               <button class="btn btn-icon" title="Attach Host File" (click)="localFiles()!.show()">
-                <lucide-angular name="paperclip" [size]="16"></lucide-angular>
+                <lucide-angular name="paperclip" [size]="18"></lucide-angular>
               </button>
             }
           </div>
@@ -225,43 +225,26 @@ export class UploadViewPageComponent implements OnDestroy, AfterViewInit {
     this.uploadService.getLocalInfo().subscribe((x) => {
       this.localFilesEnabled.set(x.hasLocalPaths);
     });
-    of(null)
-      .pipe(
-        timeout(2000),
-        take(1),
-        switchMap(() =>
-          this.srService.startConnection().pipe(
-            switchMap(() => {
-              console.log('SignalR connection started');
-              return this.srService.joinGroup(this.groupId()!);
-            }),
-            switchMap(() => {
-              return this.srService.listFormItemChange();
-            }),
-            takeUntilDestroyed()
-          )
-        )
-      )
-      .subscribe((z) => {
-        if (!z) return;
-        var files = this.files();
-        if (files) {
-          // find index of item and replace it
-          var index = files.findIndex((x) => x.id === z.id);
-          if (index !== -1) {
-            files[index] = z;
-            this.files.update(() => {
-              return [...files!];
-            });
-          } else {
-            // add new item
-            files.push(z);
-            this.files.update(() => {
-              return [...files!];
-            });
-          }
+    this.srService.uploadItemChanged.subscribe((z) => {
+      if (!z || z.groupId !== this.groupId()) return;
+      var files = this.files();
+      if (files) {
+        // find index of item and replace it
+        var index = files.findIndex((x) => x.id === z.id);
+        if (index !== -1) {
+          files[index] = z;
+          this.files.update(() => {
+            return [...files!];
+          });
+        } else {
+          // add new item
+          files.push(z);
+          this.files.update(() => {
+            return [...files!];
+          });
         }
-      });
+      }
+    });
   }
   ngAfterViewInit(): void {
     Fancybox.bind(this.elementRef.nativeElement, '[data-fancybox]');

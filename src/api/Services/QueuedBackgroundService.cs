@@ -34,11 +34,7 @@ public class QueuedBackgroundService : BackgroundService
         }
     }
 }
-public class VoidBackgroundTaskQueue : IBackgroundTaskQueue
-{
-    public ValueTask QueueFileProcessAsync(UploadItem item) => new ValueTask();
-    public Channel<WorkItem> GetChannel() => throw new NotImplementedException();
-}
+
 public class BackgroundTaskQueue : IBackgroundTaskQueue
 {
     private readonly IHubContext<UploadItemHub> _hubContext;
@@ -55,6 +51,10 @@ public class BackgroundTaskQueue : IBackgroundTaskQueue
         _hubContext = hubContext;
         _preSignUrlService = preSignUrlService;
         _options = jsonOptions.Value.SerializerOptions;
+    }
+    public async ValueTask QueueWork(WorkItem workItem)
+    {
+        await _queue.Writer.WriteAsync(workItem);
     }
 
     public async ValueTask QueueFileProcessAsync(UploadItem item)
@@ -76,7 +76,16 @@ public class BackgroundTaskQueue : IBackgroundTaskQueue
 
                         var uploadItemResponse = UploadItemResponse.FromUploadItem(_preSignUrlService, item);
                         var options = new JsonSerializerOptions() { WriteIndented = false, };
-                        await _hubContext.Clients.Group(item.GroupId.ToString()).SendAsync("UploadItemChanged", JsonSerializer.Serialize(uploadItemResponse, _options));
+                        var groupItemChanged = new GroupItemChanged()
+                        {
+                            GroupId = item.GroupId,
+                            Id = uploadItemResponse.Id,
+                            Name = uploadItemResponse.Name,
+                            Size = uploadItemResponse.Size,
+                            Url = uploadItemResponse.Url,
+                            Metadata = uploadItemResponse.Metadata
+                        };
+                        await _hubContext.Clients.Group("UploadItemChanges").SendAsync("UploadItemChanged", JsonSerializer.Serialize(groupItemChanged, _options));
                         _logger.LogInformation("Finished processing file: {FileName}", item.FileName);
                     }
                 };
@@ -94,4 +103,8 @@ public class BackgroundTaskQueue : IBackgroundTaskQueue
 public class WorkItem
 {
     public required Func<CancellationToken, Task> Action { get; set; }
+}
+public class GroupItemChanged : UploadItemResponse
+{
+    public Guid GroupId { get; set; }
 }

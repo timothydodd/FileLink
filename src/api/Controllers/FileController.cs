@@ -78,9 +78,9 @@ public class FileController : ControllerBase
 
     [HttpGet("local")]
     [Authorize(Policy = Constants.AuthPolicy.RequireEditorRole)]
-    public List<LocalFile> GetLocalFiles()
+    public async Task<FileIndexResponse> GetLocalFiles()
     {
-        return _localFileCache.GetFiles();
+        return await _localFileCache.GetFiles();
     }
 
     [Authorize(Policy = Constants.AuthPolicy.RequireEditorRole)]

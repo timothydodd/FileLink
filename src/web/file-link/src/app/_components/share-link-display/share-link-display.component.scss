@@ -1,0 +1,77 @@
+.flex-row {
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  justify-content: center;
+}
+.code-display {
+  font-size: 14px;
+  line-height: 14px;
+  font-family: monospace;
+  color: var(--text-color);
+  background-color: rgba(159, 159, 159, 0.1);
+  padding: 5px;
+  border-radius: 5px;
+  border: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 1;
+  min-width: 0; /* Important for flex shrinking */
+}
+
+::ng-deep {
+  .btn-icon {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 0px;
+    height: auto;
+  }
+  lucide-angular {
+    display: contents;
+  }
+}
+
+.code-display a {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+}
+
+@media screen and (max-width: 750px) {
+  :host {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 0;
+    position: relative;
+    gap: 20px;
+    width: 100%;
+    padding: 10px 10px;
+  }
+  .code-display {
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-grow: 1;
+  }
+  :host .share-link-display {
+    flex-direction: column;
+  }
+  :host {
+    ::ng-deep {
+      .btn-icon {
+        width: 50px;
+        height: 50px;
+        border: 1px solid var(--border-color);
+        &:hover {
+          border: 1px solid var(--primary);
+        }
+      }
+    }
+  }
+}
