@@ -9,6 +9,7 @@ import { SkeletonComponent } from '../../_components/common/skeleton/skeleton';
 import { LocalFilesModalComponent } from '../../_components/local-file-modal/local-files-modal.component';
 import { JwtAuthProvider } from '../../_services/auth/providers/jwt-auth-provider.service';
 import { RouterHelperService } from '../../_services/route-helper';
+import { UploadChunkService } from '../../_services/web-api/upload-chunk.service';
 import { LocalFile, UploadService } from '../../_services/web-api/upload.service';
 
 @Component({
@@ -39,6 +40,7 @@ export class UploadCreatePageComponent {
   localFilesModal = viewChild<LocalFilesModalComponent>('localFilesModal');
   uploads = viewChild<UploadItemsComponent>('uploads');
   uploadService = inject(UploadService);
+  chunkService = inject(UploadChunkService);
   router = inject(RouterHelperService);
   jwtAuthProvider = inject(JwtAuthProvider);
   groupId: string | null = null;
@@ -48,7 +50,7 @@ export class UploadCreatePageComponent {
     toObservable(this.uploads).subscribe((uploads) => {
       if (uploads) {
         uploads.fileService = (file: File) => {
-          return this.uploadService.create(file, this.groupId!);
+          return this.chunkService.create(file, this.groupId!);
         };
         uploads.prepService = () => {
           return this.uploadService.createGroup().pipe(

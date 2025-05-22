@@ -6,17 +6,8 @@ import { ConfigService } from '../config.service';
 export class UploadService {
   private http = inject(HttpClient);
   private configService = inject(ConfigService);
-  create(file: File, groupId: string) {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('fileName', file.name);
-
-    return this.http.post(`${this.configService.apiUrl}/api/file/group/${groupId}/upload`, formData, {
-      reportProgress: true,
-      observe: 'events',
-      responseType: 'text',
-    });
-  }
+  private readonly chunkSize = 10 * 1024 * 1024; // 10MB
+  private readonly largeFileThreshold = 50 * 1024 * 1024; // 50MB
 
   getUploads(groupId: string) {
     return this.http.get<UploadItemResponse[]>(`${this.configService.apiUrl}/api/file/group/${groupId}`);

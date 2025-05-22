@@ -13,10 +13,10 @@ import {
   WritableSignal,
 } from '@angular/core';
 
-import { HttpEvent, HttpEventType } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { LucideAngularModule } from 'lucide-angular';
 import { Observable } from 'rxjs';
+import { ChunkUploadProgress, UploadResult } from '../../_services/web-api/upload-chunk.service';
 import { ProgressComponent } from './progress';
 
 @Component({
@@ -93,7 +93,7 @@ export class UploadItemsComponent {
   fileList = signal<IUploadFile[]>([]);
   showDragArea = input(false);
   prepService: (() => Observable<any>) | undefined = undefined;
-  fileService: ((file: File) => Observable<HttpEvent<string>>) | undefined;
+  fileService: ((file: File) => Observable<ChunkUploadProgress | UploadResult>) | undefined;
   isBusy = signal(false);
   attachments = model<IUploadItem[]>([]);
   hideItemOnFinished = input(true);
@@ -104,7 +104,7 @@ export class UploadItemsComponent {
   isDragOver = signal(false);
   allowCloudFiles = input(false);
   attachCloudClicked = output();
-  public Upload(uploadService: (file: File) => Observable<HttpEvent<string>>) {
+  public Upload(uploadService: (file: File) => Observable<ChunkUploadProgress | UploadResult>) {
     if (!this.fileService) this.fileService = uploadService;
     this.filePicker()?.nativeElement.click();
   }
@@ -178,33 +178,11 @@ export class UploadItemsComponent {
       f.lastLoaded = 0; // For delta calculations
       if (!this.fileService) return;
       this.fileService(f.file).subscribe((event) => {
-        if (event.type === HttpEventType.UploadProgress) {
-          const now = Date.now();
-          const uploadStart = f.uploadStartTime!;
-          const elapsedSeconds = (now - uploadStart) / 1000;
-          const bytesUploaded = event.loaded;
-          const deltaBytes = bytesUploaded - (f.lastLoaded ?? 0);
-          const lastTimestamp = f.lastTimestamp ?? uploadStart;
-          const deltaTime = (now - lastTimestamp) / 1000;
+        var progress = event as ChunkUploadProgress;
 
-          f.lastLoaded = bytesUploaded;
-          f.lastTimestamp = now;
-
-          // Optional: You can use either `elapsedSeconds` or `deltaTime` depending on smoothing preference
-          const speedBps = deltaBytes / deltaTime;
-          const speedKbps = speedBps / 1024;
-          const speedMBps = speedBps / (1024 * 1024);
-
-          //f.uploadSpeed.set(`${speedKbps.toFixed(1)} KB/s`); // or MB/s
-          f.uploadSpeed.set(`${speedMBps.toFixed(2)} MB/s`); // update the displayed speed
-          f.progress.set(Math.round((100 * event.loaded) / event.total!));
-        } else if (event.type === HttpEventType.Response) {
-          if (event.body) {
-            const fileResponse = JSON.parse(event.body) as FileResponse;
-            if (!this.hideItemOnFinished()) {
-              var a = this.attachments() ?? [];
-              this.attachments.set([...a, { description: f.description, url: fileResponse.url }]);
-            }
+        if ('success' in event) {
+          var result = event as UploadResult;
+          if (result.success) {
             this.fileList.update((x) => {
               return x.filter((y) => y !== f);
             });
@@ -224,6 +202,65 @@ export class UploadItemsComponent {
             // this.fileList.set([]);
           }
         }
+        if (progress) {
+          // This is progress update
+          const now = Date.now();
+          const uploadStart = f.uploadStartTime!;
+          const bytesUploaded = progress.bytesUploaded;
+
+          // Initialize speed tracking if needed
+          if (!f.speedSamples) {
+            f.speedSamples = [];
+          }
+
+          // Add current sample
+          f.speedSamples.push({ bytes: bytesUploaded, timestamp: now });
+
+          // Keep only samples from last 3 seconds for smoothing
+          const smoothingWindow = 3000; // 3 seconds
+          f.speedSamples = f.speedSamples.filter((sample) => now - sample.timestamp <= smoothingWindow);
+
+          // Calculate speed using smoothing window
+          let speedMBps = 0;
+
+          if (f.speedSamples.length >= 2) {
+            // Use oldest and newest samples in the window
+            const oldestSample = f.speedSamples[0];
+            const newestSample = f.speedSamples[f.speedSamples.length - 1];
+
+            const deltaBytes = newestSample.bytes - oldestSample.bytes;
+            const deltaTime = (newestSample.timestamp - oldestSample.timestamp) / 1000;
+
+            if (deltaTime > 0.1) {
+              // Avoid division by very small numbers
+              const speedBps = deltaBytes / deltaTime;
+              speedMBps = speedBps / (1024 * 1024);
+
+              // Optional: Apply additional smoothing with previous speed
+              if (f.smoothedSpeed !== undefined) {
+                // Exponential moving average (adjust alpha for more/less smoothing)
+                const alpha = 0.3;
+                speedMBps = alpha * speedMBps + (1 - alpha) * f.smoothedSpeed;
+              }
+
+              f.smoothedSpeed = speedMBps;
+            }
+          }
+
+          // Alternative: Overall average speed (less fluctuation but less responsive)
+          const elapsedSeconds = (now - uploadStart) / 1000;
+          const overallSpeedMBps = bytesUploaded / (1024 * 1024) / elapsedSeconds;
+
+          // You can choose which speed to display:
+          const displaySpeed = speedMBps > 0 ? speedMBps : overallSpeedMBps;
+
+          f.uploadSpeed.set(`${displaySpeed.toFixed(2)} MB/s`);
+          f.progress.set(progress.overallProgress);
+
+          // Store for next calculation
+          f.lastLoaded = bytesUploaded;
+          f.lastTimestamp = now;
+        }
       });
     }
   }
@@ -240,6 +277,8 @@ export interface IUploadFile {
   uploadStartTime?: number;
   lastTimestamp?: number;
   lastLoaded?: number;
+  smoothedSpeed?: number;
+  speedSamples?: { bytes: number; timestamp: number }[];
   uploadSpeed: WritableSignal<string>;
 }
 export interface FileResponse {

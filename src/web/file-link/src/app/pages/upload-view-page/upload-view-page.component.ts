@@ -32,6 +32,7 @@ import { FileTypeIconService } from '../../_services/file-icon.service';
 import { SignalRService } from '../../_services/signalr.service';
 import { ToolbarService } from '../../_services/toolbar.service';
 import { UserPreferenceService } from '../../_services/user-prefrences.service';
+import { UploadChunkService } from '../../_services/web-api/upload-chunk.service';
 import { LocalFile, UploadItemResponse, UploadService } from '../../_services/web-api/upload.service';
 
 @Component({
@@ -153,6 +154,7 @@ export class UploadViewPageComponent implements OnDestroy, AfterViewInit {
   userPref = inject(UserPreferenceService);
   activeRoute = inject(ActivatedRoute);
   uploadService = inject(UploadService);
+  chunkService = inject(UploadChunkService);
   destroyRef = inject(DestroyRef);
   uploads = viewChild<UploadItemsComponent>('uploads');
   localFiles = viewChild<LocalFilesModalComponent>('localFilesModal');
@@ -254,7 +256,7 @@ export class UploadViewPageComponent implements OnDestroy, AfterViewInit {
   }
   upload() {
     this.uploads()?.Upload((file: File) => {
-      return this.uploadService.create(file, this.groupId()!);
+      return this.chunkService.create(file, this.groupId()!);
     });
   }
   attachItems(items: LocalFile[]) {
