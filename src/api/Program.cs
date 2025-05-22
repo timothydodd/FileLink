@@ -7,7 +7,6 @@ using FileLink.Repos;
 using FileLink.Services;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using ServiceStack;
-using ServiceStack.OrmLite;
 namespace FileLink;
 
 public class Program
@@ -94,13 +93,10 @@ public class Program
         app.UseResponseCompression();
         app.UseRouting();
         app.UseAuthorization();
+        app.UseAuthorization();
         app.UseStaticFiles();
         app.UseDefaultFiles();
-        app.Use(async (context, next) =>
-        {
-            context.Response.Headers.Append("X-Accel-Buffering", "no");
-            await next();
-        });
+
         app.MapControllers();
         app.UseHealthChecks("/health", new HealthCheckOptions { ResponseWriter = HealthCheck.WriteResponse });
         app.MapFallbackToFile("/index.html");

@@ -46,14 +46,19 @@ public static class AuthExtensions
                                         {
                                             OnMessageReceived = context =>
                                             {
-                                                var accessToken = context.Request.Query["access_token"];
-
-                                                // If the request is for our hub...
                                                 var path = context.HttpContext.Request.Path;
-                                                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hub/"))
+                                                if (path.Value?.IndexOf("/hub/") >= 0)
+
                                                 {
-                                                    // Read the token out of the query string
-                                                    context.Token = accessToken;
+                                                    var accessToken = context.Request.Query["access_token"];
+
+                                                    // If the request is for our hub...
+
+                                                    if (!string.IsNullOrEmpty(accessToken))
+                                                    {
+                                                        // Read the token out of the query string
+                                                        context.Token = accessToken;
+                                                    }
                                                 }
                                                 return Task.CompletedTask;
                                             }

@@ -39,7 +39,6 @@ export class SignalRService {
               )
             );
           },
-          transport: signalR.HttpTransportType.LongPolling,
         } as signalR.IHttpConnectionOptions)
         .withAutomaticReconnect([200, 2000, 10000, 30000])
         .configureLogging(LogLevel.Critical)

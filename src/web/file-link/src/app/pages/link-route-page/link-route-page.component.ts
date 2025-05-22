@@ -44,7 +44,7 @@ export class LinkRoutePageComponent {
             }
           }
         },
-        error: (e) => {
+        error: () => {
           this.router.goLogin();
         },
       });

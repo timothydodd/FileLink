@@ -98,8 +98,9 @@ export class MainMenuComponent {
     this.router.goLinks();
   }
   logOut() {
-    this.authService.logout().subscribe((x) => {
+    this.authService.logout().subscribe(() => {
       this.user.set(null);
+      this.router.goLogin();
     });
   }
 }

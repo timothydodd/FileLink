@@ -14,9 +14,6 @@
   flex-grow: 1;
   position: relative;
 
-  app-check:nth-child(even) {
-    //background-color: var(--alt-background);
-  }
   app-check {
     padding: 8px 15px;
     border-bottom: 1px solid var(--border-color);
