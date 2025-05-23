@@ -264,15 +264,25 @@ export class LocalFilesModalComponent {
 
     // Sort files by path to ensure proper hierarchy
     const sortedFiles = files.sort((a, b) => a.path.localeCompare(b.path));
-
+    let foundSeparator = false;
+    let separator = '/';
     for (const file of sortedFiles) {
-      const pathParts = file.path.split('\\').filter((part) => part.length > 0);
+      if (foundSeparator === false) {
+        if (file.path.indexOf('\\') !== -1) {
+          foundSeparator = true;
+          separator = '\\';
+        } else if (file.path.indexOf('/') !== -1) {
+          foundSeparator = true;
+          separator = '/';
+        }
+      }
+      const pathParts = file.path.split(separator).filter((part) => part.length > 0);
       let currentLevel = root;
       let currentPath = '';
 
       for (let i = 0; i < pathParts.length; i++) {
         const part = pathParts[i];
-        currentPath += (currentPath ? '\\' : '') + part;
+        currentPath += (currentPath ? separator : '') + part;
         const isLastPart = i === pathParts.length - 1;
 
         let existingNode = currentLevel.find((node) => node.name === part);
@@ -295,7 +305,7 @@ export class LocalFilesModalComponent {
 
           // Set parent reference
           if (i > 0) {
-            const parentPath = pathParts.slice(0, i).join('\\');
+            const parentPath = pathParts.slice(0, i).join(separator);
             const parentNode = nodeMap.get(parentPath);
             if (parentNode) {
               existingNode.parent = parentNode;
