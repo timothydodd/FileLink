@@ -1,6 +1,4 @@
-﻿using System.Collections.Concurrent;
-using System.Text.Json;
-using FileLink.Common;
+﻿using System.Text.Json;
 using FileLink.Plugin;
 using FileLink.Repos;
 using FileLink.Services;
@@ -16,7 +14,7 @@ public class FileController : ControllerBase
     private readonly ILogger<FileController> _logger;
 
 
-
+    private readonly UploadService _uploadService;
     private readonly UploadItemRepo _uploadItemRepo;
     private readonly UploadGroupRepo _uploadGroupRepo;
     private readonly UserResolverService _userResolverService;
@@ -25,9 +23,7 @@ public class FileController : ControllerBase
     private readonly PreSignUrlService _preSignUrlService;
 
     private readonly LocalFileCache _localFileCache;
-    private readonly string _uploadPath;
-    // In-memory store for tracking ongoing uploads (use Redis in production)
-    private static readonly ConcurrentDictionary<string, UploadSession> _activeSessions = new();
+
 
     public FileController(ILogger<FileController> logger,
         UploadGroupRepo uploadGroupRepo,
@@ -36,7 +32,7 @@ public class FileController : ControllerBase
         BackgroundTaskQueue backgroundTaskQueue,
         PreSignUrlService preSignUrlService,
         LocalFileCache localFileCache,
-        StorageSettings storageSettings)
+        UploadService uploadService)
     {
         _logger = logger;
         _uploadGroupRepo = uploadGroupRepo;
@@ -45,7 +41,7 @@ public class FileController : ControllerBase
         _backgroundTaskQueue = backgroundTaskQueue;
         _preSignUrlService = preSignUrlService;
         _localFileCache = localFileCache;
-        _uploadPath = StorageSettings.ResolvePath(storageSettings.SharedFilesPath);
+        _uploadService = uploadService;
     }
 
     [HttpGet("local/info")]
@@ -54,10 +50,12 @@ public class FileController : ControllerBase
     {
         return _localFileCache.GetInfo();
     }
+
+
     [HttpPost("group/{groupId}/upload")]
     [RequestSizeLimit(60_000_000)] // 60MB limit for regular uploads
     [RequestFormLimits(MultipartBodyLengthLimit = 60_000_000)]
-    public async Task<IActionResult> Upload(
+    public async Task<IActionResult> UploadAsync(
     Guid groupId,
     [FromForm] RegularUploadRequest request)
     {
@@ -69,46 +67,29 @@ public class FileController : ControllerBase
             {
                 return BadRequest("Upload a file.");
             }
-
-            if (string.IsNullOrEmpty(request.FileName))
-            {
-                request.FileName = request.File.FileName;
-            }
-
-            var itemId = Guid.NewGuid();
-            var directory = Path.Combine(_uploadPath, groupId.ToString());
-            Directory.CreateDirectory(directory);
-
-            var filePath = Path.Combine(directory, itemId.ToString() + Path.GetExtension(request.FileName));
-
-            // Stream the file directly to disk
-            await using var fileStream = new FileStream(filePath, FileMode.Create,
-                FileAccess.Write, FileShare.None, 81920, useAsync: true);
-            await request.File.CopyToAsync(fileStream);
-
-            var uploadItem = new UploadItem()
-            {
-                ItemId = itemId,
-                FileName = request.FileName,
-                GroupId = groupId,
-                PhysicalPath = filePath,
-                Size = request.File.Length,
-                CreatedDate = DateTime.UtcNow,
-            };
-
-            await _uploadItemRepo.Create(uploadItem);
-            await _backgroundTaskQueue.QueueFileProcessAsync(uploadItem);
-
-            _logger.LogInformation("Regular upload completed: {FileName}, Size: {Size}, ItemId: {ItemId}",
-                request.FileName, request.File.Length, itemId);
-
-            return Ok(new CreateUploadItemResponse(itemId));
+            var result = await _uploadService.UploadFile(groupId, request);
+            return Ok(result);
+        }
+        catch (UploadBadRequestException ex)
+        {
+            _logger.LogError(ex, "Bad request during upload");
+            return BadRequest(ex.Message);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error during regular upload");
             return StatusCode(500, "Internal server error during upload");
         }
+    }
+    [HttpPost("group/{groupId}/upload-chunk/start")]
+    public IActionResult StartUpload(Guid groupId, [FromBody] ChunkUploadStartRequest request)
+    {
+        if (request == null || request.TotalFileSize <= 0)
+        {
+            return BadRequest("No chunk data provided");
+        }
+        var r = _uploadService.StartUpload(groupId, request.FileName, request.TotalFileSize, request.TotalChunks);
+        return Ok(r);
     }
 
     [HttpPost("group/{groupId}/upload-chunk")]
@@ -132,104 +113,15 @@ public class FileController : ControllerBase
             {
                 return BadRequest("FileName is required");
             }
+            var result = await _uploadService.UploadFile(groupId, request);
 
-            UploadSession session;
+            return Ok(result);
 
-            // First chunk - create new session and generate itemId
-            if (request.ChunkNumber == 0 && string.IsNullOrEmpty(request.ItemId))
-            {
-                var itemId = Guid.NewGuid();
-                session = new UploadSession
-                {
-                    ItemId = itemId,
-                    FileName = request.FileName,
-                    GroupId = groupId,
-                    TotalChunks = request.TotalChunks,
-                    TotalFileSize = request.TotalFileSize,
-                    ChunksReceived = new HashSet<int>(),
-                    CreatedAt = DateTime.UtcNow
-                };
-
-                _activeSessions[itemId.ToString()] = session;
-
-                _logger.LogInformation("Created new upload session {ItemId} for file {FileName}",
-                    itemId, request.FileName);
-            }
-            // Subsequent chunks - find existing session
-            else if (!string.IsNullOrEmpty(request.ItemId) &&
-                     _activeSessions.TryGetValue(request.ItemId, out session))
-            {
-                // Validate session
-                if (session.FileName != request.FileName ||
-                    session.GroupId != groupId ||
-                    session.TotalChunks != request.TotalChunks)
-                {
-                    return BadRequest("Chunk data doesn't match session");
-                }
-            }
-            else
-            {
-                return BadRequest("Invalid upload session");
-            }
-
-            // Create temp directory for chunks
-            var tempDir = Path.Combine(_uploadPath, "temp", session.ItemId.ToString());
-            Directory.CreateDirectory(tempDir);
-
-            // Save the chunk
-            var chunkFileName = $"chunk.{request.ChunkNumber:D4}";
-            var chunkPath = Path.Combine(tempDir, chunkFileName);
-
-            await using var fileStream = new FileStream(chunkPath, FileMode.Create,
-                FileAccess.Write, FileShare.None, 81920, useAsync: true);
-
-            await request.Chunk.CopyToAsync(fileStream);
-
-            fileStream.Close();
-            fileStream.Dispose();
-            // Mark chunk as received
-            session.ChunksReceived.Add(request.ChunkNumber);
-
-            _logger.LogInformation("Saved chunk {ChunkNumber}/{TotalChunks} for session {ItemId}",
-                request.ChunkNumber + 1, request.TotalChunks, session.ItemId);
-
-            // Check if all chunks received
-            if (session.ChunksReceived.Count == session.TotalChunks)
-            {
-                // All chunks received, combine them
-                var finalPath = await CombineChunksAsync(tempDir, session);
-
-                // Create the upload item record
-                var uploadItem = new UploadItem()
-                {
-                    ItemId = session.ItemId,
-                    FileName = session.FileName,
-                    GroupId = session.GroupId,
-                    PhysicalPath = finalPath,
-                    Size = session.TotalFileSize,
-                    CreatedDate = DateTime.UtcNow,
-                };
-
-                await _uploadItemRepo.Create(uploadItem);
-                await _backgroundTaskQueue.QueueFileProcessAsync(uploadItem);
-
-                // Remove session from memory
-                _activeSessions.TryRemove(session.ItemId.ToString(), out _);
-
-                _logger.LogInformation("File upload completed: {FileName}, Size: {Size}, ItemId: {ItemId}",
-                    session.FileName, session.TotalFileSize, session.ItemId);
-
-                return Ok(new CreateUploadItemResponse(session.ItemId));
-            }
-
-            // Return chunk received confirmation with itemId
-            return Ok(new ChunkUploadResponse
-            {
-                ItemId = session.ItemId,
-                ChunkReceived = request.ChunkNumber + 1,
-                TotalChunks = session.TotalChunks,
-                IsComplete = false
-            });
+        }
+        catch (UploadBadRequestException ex)
+        {
+            _logger.LogError(ex, "Bad request during upload");
+            return BadRequest(ex.Message);
         }
         catch (Exception ex)
         {
@@ -238,52 +130,7 @@ public class FileController : ControllerBase
         }
     }
 
-    private async Task<string> CombineChunksAsync(string tempDir, UploadSession session)
-    {
-        var finalDir = Path.Combine(_uploadPath, session.GroupId.ToString());
-        Directory.CreateDirectory(finalDir);
 
-        var finalPath = Path.Combine(finalDir, session.ItemId.ToString() + Path.GetExtension(session.FileName));
-
-        await using var outputStream = new FileStream(finalPath, FileMode.Create,
-            FileAccess.Write, FileShare.None, 81920, useAsync: true);
-        {
-            // Combine chunks in order
-            for (int i = 0; i < session.TotalChunks; i++)
-            {
-                var chunkFileName = $"chunk.{i:D4}";
-                var chunkPath = Path.Combine(tempDir, chunkFileName);
-
-                if (!System.IO.File.Exists(chunkPath))
-                {
-                    throw new FileNotFoundException($"Chunk {i} not found for session {session.ItemId}");
-                }
-
-                await using var chunkStream = new FileStream(chunkPath, FileMode.Open,
-                    FileAccess.Read, FileShare.Read, 81920, useAsync: true);
-
-                await chunkStream.CopyToAsync(outputStream);
-
-                chunkStream.Close();
-                chunkStream.Dispose();
-
-                // Delete chunk after combining
-                System.IO.File.Delete(chunkPath);
-            }
-        }
-
-        // Clean up temp directory
-        try
-        {
-            Directory.Delete(tempDir);
-        }
-        catch
-        {
-            // Ignore if directory not empty
-        }
-
-        return finalPath;
-    }
     [HttpPut("group/{groupId}/local")]
     [Authorize(Policy = Constants.AuthPolicy.RequireEditorRole)]
     public async Task<List<CreateUploadItemResponse>> LinkLocalAsync(Guid groupId, [FromBody] List<AddLocalPath> items)
@@ -526,6 +373,12 @@ public class ChunkUploadRequest
     public int TotalChunks { get; set; }
     public long Position { get; set; }
     public long Length { get; set; }
+    public long TotalFileSize { get; set; }
+}
+public class ChunkUploadStartRequest
+{
+    public string FileName { get; set; } = string.Empty;
+    public int TotalChunks { get; set; }
     public long TotalFileSize { get; set; }
 }
 // Response Models

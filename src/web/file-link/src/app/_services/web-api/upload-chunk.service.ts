@@ -1,6 +1,6 @@
 import { HttpClient, HttpEventType, HttpProgressEvent, HttpResponse } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable, Subject, catchError, concatMap, filter, from, map, of, tap } from 'rxjs';
+import { Observable, Subject, catchError, filter, from, map, mergeMap, of, switchMap, take, tap } from 'rxjs';
 import { ConfigService } from '../config.service';
 
 export interface ChunkUploadProgress {
@@ -80,66 +80,63 @@ export class UploadChunkService {
   private uploadInChunks(file: File, groupId: string): Observable<ChunkUploadProgress | UploadResult> {
     const totalChunks = Math.ceil(file.size / this.chunkSize);
     const progressSubject = new Subject<ChunkUploadProgress | UploadResult>();
+    const concurrentUploads = 3; // Set desired concurrency level
 
     let totalBytesUploaded = 0;
-    let itemId: string | null = null;
-
-    // Create observables for all chunks
-    const chunkUploads = Array.from({ length: totalChunks }, (_, index) => {
-      return () =>
-        this.uploadChunk(file, groupId, itemId, index, totalChunks).pipe(
-          tap((event) => {
-            if (this.isProgressEvent(event)) {
-              const chunkProgress = Math.round((100 * event.loaded) / (event.total || 1));
-              const currentTotalUploaded = totalBytesUploaded + event.loaded;
-
-              const progress: ChunkUploadProgress = {
-                chunkNumber: index,
-                totalChunks: totalChunks,
-                chunkProgress: chunkProgress,
-                overallProgress: Math.round((100 * currentTotalUploaded) / file.size),
-                bytesUploaded: currentTotalUploaded,
-                totalBytes: file.size,
-                currentChunkSize: this.getChunkSize(file, index),
-              };
-              progressSubject.next(progress);
-            }
-          }),
-          map((event) => {
-            if (event.type === HttpEventType.Response) {
-              const response = event as HttpResponse<string>;
-              const result = JSON.parse(response.body || '{}');
-
-              // Store itemId from first chunk response
-              if (index === 0 && result.itemId) {
-                itemId = result.itemId;
-              }
-
-              // Update total bytes uploaded when chunk completes
-              totalBytesUploaded += this.getChunkSize(file, index);
-              return { chunkCompleted: index, response: result };
-            }
-            // For other event types (UploadProgress, Sent, etc.), return null
-            // These will be filtered out in the subscription
-            return null;
-          }),
-          filter((result) => result !== null), // Filter out null values
-          catchError((error) => {
-            progressSubject.next({ success: false, error: error.message });
-            return of(null);
-          })
-        );
-    });
-
-    // Execute uploads sequentially using concatMap
-    from(chunkUploads)
+    let itemId: string = '';
+    this.uploadChunkStart(groupId, file, totalChunks)
       .pipe(
-        concatMap((uploadFn) => uploadFn()) // concatMap ensures sequential execution
+        take(1),
+        switchMap((result) => {
+          if (!result?.itemId) {
+            throw new Error('Failed to start chunk upload');
+          }
+
+          itemId = result.itemId;
+
+          const chunkIndices = Array.from({ length: totalChunks }, (_, i) => i);
+
+          return from(chunkIndices).pipe(
+            mergeMap((index) => {
+              return this.uploadChunk(file, groupId, itemId, index, totalChunks).pipe(
+                tap((event) => {
+                  if (this.isProgressEvent(event)) {
+                    const chunkProgress = Math.round((100 * event.loaded) / (event.total || 1));
+                    const currentChunkSize = this.getChunkSize(file, index);
+                    const estimatedUploaded = Math.min(totalBytesUploaded + event.loaded, file.size);
+
+                    progressSubject.next({
+                      chunkNumber: index,
+                      totalChunks,
+                      chunkProgress,
+                      overallProgress: Math.round((100 * estimatedUploaded) / file.size),
+                      bytesUploaded: estimatedUploaded,
+                      totalBytes: file.size,
+                      currentChunkSize,
+                    });
+                  }
+                }),
+                map((event) => {
+                  if (event.type === HttpEventType.Response) {
+                    totalBytesUploaded += this.getChunkSize(file, index);
+                    return index;
+                  }
+                  return null;
+                }),
+                filter((index) => index !== null),
+                catchError((err) => {
+                  progressSubject.next({ success: false, error: err.message });
+                  return of(null); // Continue other uploads
+                })
+              );
+            }, concurrentUploads) // <== Set concurrency here
+          );
+        })
       )
       .subscribe({
-        next: (result) => {
-          if (result?.chunkCompleted !== undefined) {
-            console.log(`Chunk ${result.chunkCompleted + 1}/${totalChunks} completed`);
+        next: (index) => {
+          if (index !== null) {
+            console.log(`Chunk ${index + 1}/${totalChunks} uploaded`);
           }
         },
         complete: () => {
@@ -155,7 +152,17 @@ export class UploadChunkService {
 
     return progressSubject.asObservable();
   }
-
+  private uploadChunkStart(groupId: string, file: File, totalChunks: number): Observable<UploadChunkStartResponse> {
+    var request: ChunkUploadStartRequest = {
+      fileName: file.name,
+      totalChunks: totalChunks,
+      totalFileSize: file.size,
+    };
+    return this.http.post<UploadChunkStartResponse>(
+      `${this.configService.apiUrl}/api/file/group/${groupId}/upload-chunk/start`,
+      request
+    );
+  }
   private uploadChunk(
     file: File,
     groupId: string,
@@ -197,4 +204,19 @@ export class UploadChunkService {
   private isProgressEvent(event: any): event is HttpProgressEvent {
     return event.type === HttpEventType.UploadProgress;
   }
+}
+
+export interface UploadChunkStartResponse {
+  itemId: string;
+}
+export interface ChunkUploadStartRequest {
+  fileName: string;
+  totalChunks: number;
+  totalFileSize: number;
+}
+export interface ChunkUploadResponse {
+  itemId: string;
+  chunkReceived: number;
+  totalChunks: number;
+  isComplete: boolean;
 }

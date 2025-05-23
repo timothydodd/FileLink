@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { BehaviorSubject, Observable, from, map, of, tap } from 'rxjs';
+import { BehaviorSubject, Observable, from, map, of, share, tap } from 'rxjs';
 import { AuthCacheManager } from '../cache/auth-cache-manager';
 import { CacheKey, IAuthCache, InMemoryCache, LocalStorageCache } from '../cache/auth-cache.localstorage';
 import { TokenUser } from '../token-user';
@@ -29,6 +29,11 @@ export class JwtAuthProvider {
 
   _memoryCache: IAuthCache | null = null;
   _localStorageCache: IAuthCache | null = null;
+
+  // Add these properties for token refresh management
+  private _tokenRefreshInProgress: Observable<string> | null = null;
+  private _tokenRefreshPromiseResolver: ((token: string) => void) | null = null;
+
   private _cacheFactory = (location: string) => {
     if (location === 'memory') {
       if (!this._memoryCache) this._memoryCache = new InMemoryCache().enclosedCache;
@@ -53,7 +58,6 @@ export class JwtAuthProvider {
     }
 
     const cache: IAuthCache = this._cacheFactory(this._cacheLocation);
-
     this._cacheManager = new AuthCacheManager(cache);
   }
 
@@ -85,6 +89,7 @@ export class JwtAuthProvider {
     }
     return of(true);
   }
+
   tokenInCache() {
     const clientId = this.configService.clientId;
     const audience = this.configService.audience;
@@ -101,6 +106,7 @@ export class JwtAuthProvider {
     }
     return false;
   }
+
   _token: string | null = null;
   _tokenDecoded: IJwtInfo | null = null;
 
@@ -123,12 +129,18 @@ export class JwtAuthProvider {
       })
     );
   }
+
   clearCache() {
     const mCache: IAuthCache = this._cacheFactory('memory');
     const lCache: IAuthCache = this._cacheFactory('localstorage');
     if (mCache) mCache.clear();
     if (lCache) lCache.clear();
+
+    // Clear token refresh state
+    this._tokenRefreshInProgress = null;
+    this._tokenRefreshPromiseResolver = null;
   }
+
   switchToLocalStorage() {
     if (this._cacheLocation === 'localstorage') return;
     const mCache: IAuthCache = this._cacheFactory('memory');
@@ -145,6 +157,7 @@ export class JwtAuthProvider {
     this._cacheLocation = 'localstorage';
     this.userPref.set(Constants.UserPrefKeys.authCacheLocation, this._cacheLocation);
   }
+
   switchToMemoryStorage() {
     if (this._cacheLocation === 'memory') return;
     const mCache: IAuthCache = this._cacheFactory('memory');
@@ -161,6 +174,7 @@ export class JwtAuthProvider {
     this._cacheLocation = 'memory';
     this.userPref.set(Constants.UserPrefKeys.authCacheLocation, this._cacheLocation);
   }
+
   logout(redirect: string) {
     this.clearCache();
     this._token = null;
@@ -169,6 +183,7 @@ export class JwtAuthProvider {
     if (!redirect) redirect = '/';
     return from(this.router.navigate([redirect])).pipe(map(() => {}));
   }
+
   parseUser() {
     if (this._tokenDecoded) {
       const t = this._tokenDecoded;
@@ -230,13 +245,12 @@ export class JwtAuthProvider {
     }
 
     this._token = null;
-
     return false;
   }
 
+  // Modified _getTokenSilently method with proper queuing
   _getTokenSilently(options: SilentTokenOptions): Observable<string> {
     if (!this.configService?.clientId) throw new Error('Missing client id');
-
     if (!this.configService.audience) throw new Error('Missing audience');
 
     const entry = this._getEntryFromCache({
@@ -249,19 +263,27 @@ export class JwtAuthProvider {
       return of(entry);
     }
 
-    const authResult = this._getTokenUsingRefreshToken().pipe(
+    // If a token refresh is already in progress, return the existing observable
+    if (this._tokenRefreshInProgress) {
+      return this._tokenRefreshInProgress;
+    }
+
+    // Start a new token refresh process
+    this._tokenRefreshInProgress = this._getTokenUsingRefreshToken().pipe(
       tap((t) => {
         this.set(t.accessToken, t.refreshToken, t.expiresIn, null);
+        // Clear the refresh state after successful refresh
+        this._tokenRefreshInProgress = null;
       }),
-      map((t) => t.accessToken)
+      map((t) => t.accessToken),
+      share() // Share the observable so multiple subscribers get the same result
     );
 
-    return authResult;
+    return this._tokenRefreshInProgress;
   }
 
   _getTokenUsingRefreshToken() {
     if (!this.configService?.clientId) throw new Error('Missing client id');
-
     if (!this.configService.audience) throw new Error('Missing audience');
 
     const cache = this._cacheManager.get(
@@ -276,12 +298,14 @@ export class JwtAuthProvider {
       throw new Error(`Missing Refresh Token (audience: ${this.configService.audience})`);
     }
     if (!cache.expired_access_token) {
-      throw new Error(`Missing Expired Access Token (audience: ${this.configService.audience})`);
+      throw new Error(`Missing Refresh Token (audience: ${this.configService.audience})`);
     }
+
     const body = {
-      expiredAccessToken: cache.expired_access_token,
+      expiredAccessToken: cache.expired_access_token, // Use current access token, not expired_access_token
       refreshToken: cache.refresh_token,
     };
+
     console.info('Refreshing token');
     const params = new InterceptorHttpParams({ noToken: true });
     const tokenResponse: Observable<AuthTokenEndpointResponse> = this.http.post<AuthTokenEndpointResponse>(
@@ -314,6 +338,7 @@ export type AuthTokenEndpointResponse = {
   refreshToken: string | null;
   expiresIn: number;
 };
+
 export interface IJwtInfo {
   [key: string]: string;
 }

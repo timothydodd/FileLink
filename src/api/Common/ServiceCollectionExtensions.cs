@@ -157,6 +157,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<LinkCodeRepo>();
         services.AddSingleton<PasswordService>();
         services.AddSingleton<LocalFileCache>();
+        services.AddSingleton<UploadService>();
         services.AddLogging(logging =>
         {
             logging.AddSimpleConsole(c =>
