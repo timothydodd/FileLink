@@ -27,7 +27,7 @@ export class UploadChunkService {
   private configService = inject(ConfigService);
 
   // Configurable chunk size (default 10MB)
-  private readonly chunkSize = 25 * 1024 * 1024; // 20MB
+  private readonly chunkSize = 50 * 1024 * 1024; // 50MB
   private readonly largeFileThreshold = 50 * 1024 * 1024; // 50MB
 
   create(file: File, groupId: string): Observable<ChunkUploadProgress | UploadResult> {

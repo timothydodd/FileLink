@@ -1,23 +1,94 @@
 :host {
   display: contents;
 }
-.list {
+
+.list-wrap {
   display: flex;
   flex-direction: column;
-  max-height: 500px;
-  overflow: auto;
-  margin-top: 20px;
-  border: 1px solid var(--border-color);
-
-  border-radius: 5px;
-
   flex-grow: 1;
+  position: relative;
+  overflow: auto;
+  border: 1px solid var(--border-color);
+  margin-top: 20px;
+}
+.list {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 10px;
+  border-radius: 5px;
+  flex-grow: 1;
+}
 
-  app-check {
-    padding: 8px 15px;
-    border-bottom: 1px solid var(--border-color);
+.tree-item {
+  // border-bottom: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  &:last-child {
+    border-bottom: none;
   }
 }
+app-check {
+  margin-left: 10px;
+}
+
+.folder-row,
+.file-row {
+  display: flex;
+  align-items: center;
+  padding: 5px 0;
+
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background-color: var(--hover-bg-color, rgba(0, 0, 0, 0.05));
+  }
+}
+
+.folder-row {
+  font-weight: 500;
+}
+
+.file-row {
+  .file-indent {
+    width: 20px; // Same width as chevron icon to align files under folders
+    flex-shrink: 0;
+  }
+}
+
+.expand-icon {
+  flex-shrink: 0;
+  color: var(--text-secondary, #666);
+  transition: transform 0.2s ease;
+}
+
+.folder-icon {
+  flex-shrink: 0;
+  color: var(--folder-color, #ffa500);
+}
+
+.file-icon {
+  width: 16px;
+  height: 16px;
+  margin-right: 8px;
+  flex-shrink: 0;
+  color: var(--file-color, #666);
+}
+
+.folder-check,
+.file-check {
+  flex: 1;
+
+  // Override default check component padding since we're handling it at tree-item level
+  ::ng-deep {
+    padding: 0 !important;
+  }
+}
+
 .index-message {
   position: absolute;
   top: 50%;
@@ -29,22 +100,62 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
+
   .small {
     font-size: 12px;
     color: rgba(0, 0, 0, 0.685);
   }
 }
+
 input {
   width: 400px;
 }
+
 .text-center {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
+  color: var(--text-secondary, #666);
+  font-style: italic;
 }
+
+// Responsive design
 @media screen and (max-width: 768px) {
   .list {
     max-height: unset;
+  }
+
+  input {
+    width: 100%;
+  }
+
+  .tree-item {
+    [style*='padding-left'] {
+      padding-left: calc(var(--level, 0) * 15px + 10px) !important;
+    }
+  }
+}
+
+// Dark mode support (if your app supports it)
+@media (prefers-color-scheme: dark) {
+  .folder-row,
+  .file-row {
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+  }
+
+  .expand-icon,
+  .file-icon {
+    color: #ccc;
+  }
+
+  .folder-icon {
+    color: #ffb347;
+  }
+
+  .text-center {
+    color: #ccc;
   }
 }

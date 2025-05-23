@@ -1,6 +1,6 @@
 import { animate, state, style, transition, trigger } from '@angular/animations';
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject, signal, TemplateRef } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal, TemplateRef } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { LucideAngularModule } from 'lucide-angular';
 import { ModalService } from './modal.service';
@@ -12,7 +12,7 @@ import { ModalService } from './modal.service';
     @if (isOpen()) {
       <div class="backdrop" [@fadeInOut]>
         <div class="modal-container">
-          <div class="modal" [@fadeInOut] [ngClass]="modalClass()">
+          <div class="modal" [@fadeInOut] [ngClass]="classView()">
             <div class="modal-header">
               <h4 class="modal-title">{{ title() }}</h4>
 
@@ -67,6 +67,15 @@ export class ModalComponent {
   isOpen = signal(false);
   title = signal<string | null>(null);
   modalClass = signal<'sm' | 'lg' | 'xl'>('sm');
+  customClass = signal<string | null>(null);
+  classView = computed(() => {
+    var classes = [this.modalClass().toString()];
+    var cc = this.customClass();
+    if (cc) {
+      classes.push(cc);
+    }
+    return classes;
+  });
   constructor() {
     this.modalService.modalEvent.pipe(takeUntilDestroyed()).subscribe((x) => {
       if (x && x !== null) {
@@ -75,12 +84,14 @@ export class ModalComponent {
         this.footerTemplate.set(x.footerTemplate);
         this.title.set(x.title);
         this.modalClass.set(x.size || 'sm');
+        this.customClass.set(x.customClass || null);
       } else {
         this.isOpen.set(false);
         this.bodyTemplate.set(null);
         this.footerTemplate.set(null);
         this.title.set(null);
         this.modalClass.set('sm');
+        this.customClass.set(null);
       }
     });
   }

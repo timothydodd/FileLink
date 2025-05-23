@@ -94,8 +94,8 @@ public class FileController : ControllerBase
 
     [HttpPost("group/{groupId}/upload-chunk")]
     [Authorize(Policy = Constants.AuthPolicy.RequireEditorRole)]
-    [RequestSizeLimit(30_000_000)] // 15MB limit per chunk
-    [RequestFormLimits(MultipartBodyLengthLimit = 30_000_000)]
+    [RequestSizeLimit(55_000_000)] // 50MB limit per chunk
+    [RequestFormLimits(MultipartBodyLengthLimit = 55_000_000)]
     public async Task<IActionResult> UploadChunk(
          Guid groupId,
          [FromForm] ChunkUploadRequest request)

@@ -84,3 +84,7 @@ input {
     border-color: var(--primary);
   }
 }
+lucide-icon,
+lucide-angular {
+  display: contents;
+}
