@@ -1,8 +1,13 @@
 #  FileLink
 
 **FileLink** is a lightweight, self-hosted file sharing app that runs in a container. It allows users to upload files and share them using simple, secure external links—**no login required**. The owner of the instance can log in to manage upload groups and access controls.
-![image](https://github.com/user-attachments/assets/7b581dca-7d33-4295-9670-689f7ccf2902)
 
+
+![image](https://github.com/user-attachments/assets/68d69c24-92d7-4b79-a922-8825704e4a04)
+
+![image](https://github.com/user-attachments/assets/3c4af4b0-f057-421c-a1f1-4660f2e39bbb)
+
+![image](https://github.com/user-attachments/assets/866a4b44-8954-42d7-98d2-902b9d51f0b9)
 
 ## ✨ Features
 
@@ -12,7 +17,7 @@
 * 🛠 **No Database Setup Needed** – Supports SQLite or MySQL.
 *  **Modern UI** – Clean, minimalist interface designed for simplicity.
 *  **Movie Metadata Integration** – Plug in [OMDb API](https://www.omdbapi.com/) to fetch movie details and posters automatically.
-
+* **Attach Host Files** - Can share files mapped to the host 
 ## 🚀 Getting Started
 
 ### Run with Docker
