@@ -76,13 +76,8 @@ If your uploaded file names include movie titles, FileLink can automatically pul
 * Movie Posters
 * Ratings and Descriptions
 
-To enable this feature, set your `OMDBSETTINGS__APIKEY` environment variable with a valid key from [omdbapi.com](https://www.omdbapi.com/apikey.aspx).
+To enable this feature, set your `OmdbSettings__ApiKey` environment variable with a valid key from [omdbapi.com](https://www.omdbapi.com/apikey.aspx).
 
-##  File Groups
-
-* Each file is part of a **group**.
-* Group links allow recipients to access multiple files.
-* Groups can expire or be deleted by the admin.
 
 ##  Security
 
@@ -93,18 +88,12 @@ To enable this feature, set your `OMDBSETTINGS__APIKEY` environment variable wit
 ##  Tech Stack
 
 * **Backend:** ASP.NET Core 9
-* **Frontend:** Angular 19 (standalone components)
+* **Frontend:** Angular 19
 * **Database:** SQLite or MySQL
 * **Containerized:** Runs easily in Docker or k8s
 
-## 📷 Screenshots
 
-![image](https://github.com/user-attachments/assets/a317c83d-0201-4aaa-a3c9-6ffca556e786)
-![image](https://github.com/user-attachments/assets/ef7c92a8-a640-4bd4-9b93-d04bd4fac86a)
-![image](https://github.com/user-attachments/assets/746d7edf-315d-49e7-a6cf-c7d1791b1bfb)
-
-
-## 🧪 Development
+## Development
 
 Clone and run locally:
 
