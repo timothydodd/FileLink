@@ -39,6 +39,7 @@ public class LocalFileCache
 
         return fullPath;
     }
+
     public LocalInfo GetInfo()
     {
         return new LocalInfo
@@ -68,6 +69,20 @@ public class LocalFileCache
             });
         }
     }
+    public LocalFile? GetByPath(string path)
+    {
+        //get file by path
+        if (_memoryCache.TryGetValue("local-files-by-path", out Dictionary<string, LocalFile>? filesByPath))
+        {
+            if (filesByPath != null && filesByPath.TryGetValue(path, out LocalFile? file))
+            {
+                return file;
+            }
+        }
+
+        // If not found, refresh the local files cache
+        return null;
+    }
     public FileIndexResponse GetFiles()
     {
 
@@ -94,6 +109,7 @@ public class LocalFileCache
     public List<LocalFile> RefreshLocalFiles()
     {
         var response = new List<LocalFile>();
+        var itemsByPath = new Dictionary<string, LocalFile>(StringComparer.OrdinalIgnoreCase);
         if (_storageSettings.LocalSharedPaths == null)
             return response;
         var startTime = DateTime.UtcNow;
@@ -110,16 +126,29 @@ public class LocalFileCache
                     var ext = Path.GetExtension(f);
                     if (!AllowedExtensions.Contains(ext))
                         continue;
-                    response.Add(new LocalFile
+                    var item = new LocalFile
                     {
                         LocalPathIndex = i,
-                        Path = f.Substring(localPath.Length)
-                    });
+                        Path = f.Substring(localPath.Length),
+                        Length = new FileInfo(f).Length
+                    };
+                    response.Add(item);
+                    if (!itemsByPath.ContainsKey(f))
+                    {
+                        itemsByPath[f] = item;
+                    }
+                    else
+                    {
+                        // If the file already exists, we can choose to update it or skip
+                        // For now, we will skip duplicates
+                        _logger.LogWarning("Duplicate file found: {FilePath}", f);
+                    }
                 }
             }
         }
         _logger.LogInformation("Found {count} local files in {time} seconds", response.Count, (DateTime.UtcNow - startTime).TotalSeconds);
         _memoryCache.Set("local-files", response);
+        _memoryCache.Set("local-files-by-path", itemsByPath);
         return response;
     }
 }
@@ -132,6 +161,7 @@ public class LocalFile
 {
     public required int LocalPathIndex { get; set; }
     public required string Path { get; set; }
+    public required long Length { get; set; }
 
 }
 

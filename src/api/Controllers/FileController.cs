@@ -147,34 +147,33 @@ public class FileController : ControllerBase
             var time1 = stopwatch.Elapsed.TotalMilliseconds;
             _logger.LogInformation($"CheckPath start: {item.Path} - {time1}");
             var fullPath = _localFileCache.GetLocalFullPath(item.LocalPathIndex, item.Path);
-            var fileInfo = new FileInfo(fullPath);
+            var fileInfo = _localFileCache.GetByPath(fullPath);
+            if (fileInfo == null)
+            {
+                _logger.LogWarning($"File not found: {item.Path}");
+                continue; // Skip if file does not exist
+            }
 
-            if (fileInfo.Exists)
+            _logger.LogInformation($"CheckPath end: {item.Path} - {stopwatch.Elapsed.TotalMilliseconds - time1}");
+            var uploadItem = new UploadItem()
             {
-                _logger.LogInformation($"CheckPath end: {item.Path} - {stopwatch.Elapsed.TotalMilliseconds - time1}");
-                var uploadItem = new UploadItem()
-                {
-                    ItemId = Guid.NewGuid(),
-                    FileName = fileInfo.Name,
-                    GroupId = groupId,
-                    PhysicalPath = fullPath,
-                    Size = fileInfo.Length,
-                    CreatedDate = DateTime.UtcNow,
-                };
-                var time2 = stopwatch.Elapsed.TotalMilliseconds;
-                _logger.LogInformation($"CreateUploadItem start: {item.Path}");
-                await _uploadItemRepo.Create(uploadItem);
-                _logger.LogInformation($"CreateUploadItem end: {item.Path} -  {stopwatch.Elapsed.TotalMilliseconds - time2}");
-                var time3 = stopwatch.Elapsed.TotalMilliseconds;
-                _logger.LogInformation($"QueueFileProcessAsync start:  {item.Path}");
-                _backgroundTaskQueue.QueueFileProcessAsync(uploadItem);
-                _logger.LogInformation($"QueueFileProcessAsync end: {item.Path} - {stopwatch.Elapsed.TotalMilliseconds - time3}");
-                result.Add(new CreateUploadItemResponse(uploadItem.ItemId));
-            }
-            else
-            {
-                _logger.LogInformation("CheckPath end: {item.Path} - " + (stopwatch.Elapsed.TotalMilliseconds - time1).ToString());
-            }
+                ItemId = Guid.NewGuid(),
+                FileName = Path.GetFileName(fullPath),
+                GroupId = groupId,
+                PhysicalPath = fullPath,
+                Size = fileInfo.Length,
+                CreatedDate = DateTime.UtcNow,
+            };
+            var time2 = stopwatch.Elapsed.TotalMilliseconds;
+            _logger.LogInformation($"CreateUploadItem start: {item.Path}");
+            await _uploadItemRepo.Create(uploadItem);
+            _logger.LogInformation($"CreateUploadItem end: {item.Path} -  {stopwatch.Elapsed.TotalMilliseconds - time2}");
+            var time3 = stopwatch.Elapsed.TotalMilliseconds;
+            _logger.LogInformation($"QueueFileProcessAsync start:  {item.Path}");
+            _backgroundTaskQueue.QueueFileProcessAsync(uploadItem);
+            _logger.LogInformation($"QueueFileProcessAsync end: {item.Path} - {stopwatch.Elapsed.TotalMilliseconds - time3}");
+            result.Add(new CreateUploadItemResponse(uploadItem.ItemId));
+
             _logger.LogInformation("total time: {item.Path} - " + stopwatch.Elapsed.TotalMilliseconds.ToString());
             totalProcessingTime += (int)stopwatch.Elapsed.TotalMilliseconds;
 
