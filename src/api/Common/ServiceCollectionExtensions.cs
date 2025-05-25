@@ -117,11 +117,7 @@ public static class ServiceCollectionExtensions
     {
         services.AddSingleton<BackgroundTaskQueue>();
         services.AddSingleton<QueueTester>();
-        services.AddSingleton(sp =>
-        {
-            var queue = sp.GetRequiredService<BackgroundTaskQueue>();
-            return queue!.GetChannel();
-        });
+
         services.AddHostedService<QueuedBackgroundService>();
         services.AddHostedService<FileCleanUpBackgroundService>();
         return services;

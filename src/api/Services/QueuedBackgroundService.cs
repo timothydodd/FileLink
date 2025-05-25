@@ -41,7 +41,7 @@ public class QueuedBackgroundService : BackgroundService
                 else
                 {
                     // No work available, wait a bit before polling again
-                    await Task.Delay(1000, stoppingToken); // Poll every 100ms
+                    await Task.Delay(2000, stoppingToken); // Poll every 100ms
                 }
             }
             catch (OperationCanceledException)
