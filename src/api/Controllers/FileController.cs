@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System.Diagnostics;
+using System.Text.Json;
 using FileLink.Plugin;
 using FileLink.Repos;
 using FileLink.Services;
@@ -135,11 +136,16 @@ public class FileController : ControllerBase
     [Authorize(Policy = Constants.AuthPolicy.RequireEditorRole)]
     public async Task<List<CreateUploadItemResponse>> LinkLocalAsync(Guid groupId, [FromBody] List<AddLocalPath> items)
     {
+        var stopwatch = Stopwatch.StartNew();
+        _logger.LogInformation("Linking local files to group {GroupId}", groupId);
         List<CreateUploadItemResponse> result = new List<CreateUploadItemResponse>();
         foreach (var item in items)
         {
+            var time1 = stopwatch.Elapsed.TotalMilliseconds;
+            _logger.LogInformation("CheckPath start - " + time1.ToString());
             var fullPath = _localFileCache.GetLocalFullPath(item.LocalPathIndex, item.Path);
             var fileInfo = new FileInfo(fullPath);
+            _logger.LogInformation("CheckPath end - " + (stopwatch.Elapsed.TotalMilliseconds - time1).ToString());
             if (fileInfo.Exists)
             {
                 var uploadItem = new UploadItem()
@@ -151,9 +157,14 @@ public class FileController : ControllerBase
                     Size = fileInfo.Length,
                     CreatedDate = DateTime.UtcNow,
                 };
-
+                var time2 = stopwatch.Elapsed.TotalMilliseconds;
+                _logger.LogInformation("CreateUploadItem start");
                 await _uploadItemRepo.Create(uploadItem);
+                _logger.LogInformation("CreateUploadItem end - " + (stopwatch.Elapsed.TotalMilliseconds - time2).ToString());
+                var time3 = stopwatch.Elapsed.TotalMilliseconds;
+                _logger.LogInformation("QueueFileProcessAsync start");
                 _backgroundTaskQueue.QueueFileProcessAsync(uploadItem);
+                _logger.LogInformation("QueueFileProcessAsync end - " + (stopwatch.Elapsed.TotalMilliseconds - time3).ToString());
                 result.Add(new CreateUploadItemResponse(uploadItem.ItemId));
             }
         }
