@@ -13,11 +13,11 @@ public class QueueTester
         _uploadItemRepo = uploadItemRepo;
     }
 
-    public async Task ProcessFile()
+    public async Task ProcessFileAsync()
     {
 
         var uploadItem = await _uploadItemRepo.Get(Guid.Parse("5148e36a-c997-4f05-b301-c38897b602e7"));
 
-        await _backgroundTaskQueue.QueueFileProcessAsync(uploadItem);
+        _backgroundTaskQueue.QueueFileProcessAsync(uploadItem);
     }
 }

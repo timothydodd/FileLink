@@ -153,7 +153,7 @@ public class FileController : ControllerBase
                 };
 
                 await _uploadItemRepo.Create(uploadItem);
-                await _backgroundTaskQueue.QueueFileProcessAsync(uploadItem);
+                _backgroundTaskQueue.QueueFileProcessAsync(uploadItem);
                 result.Add(new CreateUploadItemResponse(uploadItem.ItemId));
             }
         }

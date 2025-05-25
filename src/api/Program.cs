@@ -71,7 +71,7 @@ public class Program
                 var queue = scope.ServiceProvider.GetRequiredService<BackgroundTaskQueue>();
                 foreach (var item in metaItems)
                 {
-                    await queue.QueueFileProcessAsync(item);
+                    queue.QueueFileProcessAsync(item);
                 }
             }
             var localFileCache = scope.ServiceProvider.GetRequiredService<LocalFileCache>();

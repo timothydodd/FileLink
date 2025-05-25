@@ -118,7 +118,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<BackgroundTaskQueue>();
         services.AddSingleton<QueueTester>();
 
-        services.AddHostedService<QueuedBackgroundService>();
+        services.AddHostedService<PollingBackgroundService>();
         services.AddHostedService<FileCleanUpBackgroundService>();
         return services;
     }

@@ -10,55 +10,6 @@ using Microsoft.Extensions.Options;
 
 namespace FileLink.Services;
 
-public class QueuedBackgroundService : BackgroundService
-{
-    private readonly BackgroundTaskQueue _taskQueue;
-    private readonly ILogger<QueuedBackgroundService> _logger;
-
-    public QueuedBackgroundService(BackgroundTaskQueue taskQueue, ILogger<QueuedBackgroundService> logger)
-    {
-        _taskQueue = taskQueue;
-        _logger = logger;
-    }
-
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        _logger.LogInformation("Polling Background Service started");
-
-        while (!stoppingToken.IsCancellationRequested)
-        {
-            try
-            {
-                if (_taskQueue.TryDequeue(out var workItem))
-                {
-                    if (workItem == null)
-                    {
-                        _logger.LogWarning("Work item is null");
-                        continue;
-                    }
-                    await workItem.Action(stoppingToken);
-                }
-                else
-                {
-                    // No work available, wait a bit before polling again
-                    await Task.Delay(2000, stoppingToken); // Poll every 100ms
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                // Expected when cancellation is requested
-                break;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error occurred executing background task");
-                // Continue processing other items
-            }
-        }
-
-
-    }
-}
 
 public class BackgroundTaskQueue
 {
@@ -78,7 +29,7 @@ public class BackgroundTaskQueue
         _options = jsonOptions.Value.SerializerOptions;
     }
 
-    public ValueTask QueueFileProcessAsync(UploadItem item)
+    public void QueueFileProcessAsync(UploadItem item)
     {
         foreach (var plugin in _filePlugins)
         {
@@ -116,8 +67,6 @@ public class BackgroundTaskQueue
                 _logger.LogInformation("Skipping file: {FileName}", item.FileName);
             }
         }
-
-        return ValueTask.CompletedTask;
     }
     public bool TryDequeue(out WorkItem? workItem)
     {

@@ -104,7 +104,7 @@ public class UploadService
             };
 
             await _uploadItemRepo.Create(uploadItem);
-            await _backgroundTaskQueue.QueueFileProcessAsync(uploadItem);
+            _backgroundTaskQueue.QueueFileProcessAsync(uploadItem);
 
             // Remove session from memory
             _activeSessions.TryRemove(session.ItemId.ToString(), out _);
@@ -159,7 +159,7 @@ public class UploadService
         };
 
         await _uploadItemRepo.Create(uploadItem);
-        await _backgroundTaskQueue.QueueFileProcessAsync(uploadItem);
+        _backgroundTaskQueue.QueueFileProcessAsync(uploadItem);
 
         _logger.LogInformation("Regular upload completed: {FileName}, Size: {Size}, ItemId: {ItemId}",
             request.FileName, request.File.Length, itemId);
