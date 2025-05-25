@@ -1,11 +1,14 @@
-﻿using System.Dynamic;
-using System.Text.Json;
+﻿using System.Text.Json;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace FileLink.Common.HealthCheck;
 
 public static class HealthCheck
 {
+    private static readonly JsonSerializerOptions s_serializerOptions = new JsonSerializerOptions
+    {
+        WriteIndented = true
+    };
     public static void AddHealthChecks(IServiceCollection services, string connectionString)
     {
         _ = services.AddHealthChecks()
@@ -18,60 +21,23 @@ public static class HealthCheck
     }
 
 
-    public static Task WriteResponse(HttpContext httpContext,
-        HealthReport result)
+    public static async Task WriteResponse(HttpContext context,
+        HealthReport report)
     {
-        httpContext.Response.ContentType = "application/json";
-        var hc = new
+        context.Response.ContentType = "application/json";
+        var response = new
         {
-            status = result.Status.ToString(),
-            results = GetResultsExpando(result)
+            status = report.Status.ToString(),
+            checks = report.Entries.Select(x => new
+            {
+                name = x.Key,
+                status = x.Value.Status.ToString(),
+                description = x.Value.Description,
+                data = x.Value.Data
+            })
         };
 
-
-        return httpContext.Response.WriteAsync(
-            JsonSerializer.Serialize(hc, new JsonSerializerOptions() { WriteIndented = true }));
-
-        static ExpandoObject GetResultsExpando(HealthReport result)
-        {
-            dynamic resultExpando = new ExpandoObject();
-            foreach (KeyValuePair<string, HealthReportEntry> entry in result.Entries)
-            {
-                _ = AddProperty(resultExpando, entry.Key, new
-                {
-                    status = entry.Value.Status.ToString(),
-                    description = entry.Value.Description,
-                    data = GetDataExpando(entry.Value.Data)
-                });
-            }
-            return resultExpando;
-        }
-
-        static ExpandoObject GetDataExpando(IReadOnlyDictionary<string, object> data)
-        {
-            dynamic dataExpando = new ExpandoObject();
-            foreach (KeyValuePair<string, object> d in data)
-            {
-                _ = AddProperty(dataExpando, d.Key, d.Value);
-            }
-
-            return dataExpando;
-        }
-
-        static bool AddProperty(ExpandoObject obj, string key, object value)
-        {
-            var dynamicDict = obj as IDictionary<string, object>;
-            if (dynamicDict.ContainsKey(key))
-            {
-                return false;
-            }
-            else
-            {
-                dynamicDict.Add(key, value);
-            }
-
-            return true;
-        }
+        await context.Response.WriteAsync(JsonSerializer.Serialize(response, s_serializerOptions));
 
     }
 
