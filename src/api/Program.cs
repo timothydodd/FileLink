@@ -78,7 +78,7 @@ public class Program
             var localInfo = localFileCache.GetInfo();
             if (localInfo.HasLocalPaths)
             {
-                await localFileCache.QueueIndexing();
+                localFileCache.QueueIndexing();
             }
         }
         // Configure the HTTP request pipeline.

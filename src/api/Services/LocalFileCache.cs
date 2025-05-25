@@ -46,7 +46,7 @@ public class LocalFileCache
             HasLocalPaths = _storageSettings.LocalSharedPaths != null && _storageSettings.LocalSharedPaths.Count > 0
         };
     }
-    public async Task QueueIndexing()
+    public void QueueIndexing()
     {
         var indexingKey = $"indexing_local-files";
         if (!_memoryCache.TryGetValue(indexingKey, out _))
@@ -55,7 +55,7 @@ public class LocalFileCache
             // Set indexing flag in cache
             _memoryCache.Set(indexingKey, true, TimeSpan.FromMinutes(30)); // Timeout after 30 minutes
 
-            await _backgroundTaskQueue.QueueWork(new WorkItem
+            _backgroundTaskQueue.QueueWork(new WorkItem
             {
                 Action = async (token) =>
                 {
@@ -68,7 +68,7 @@ public class LocalFileCache
             });
         }
     }
-    public async Task<FileIndexResponse> GetFiles()
+    public FileIndexResponse GetFiles()
     {
 
         if (_memoryCache.TryGetValue("local-files", out List<LocalFile>? files))
@@ -81,7 +81,7 @@ public class LocalFileCache
                 };
         }
 
-        await QueueIndexing();
+        QueueIndexing();
 
 
 

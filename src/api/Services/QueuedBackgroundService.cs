@@ -1,5 +1,5 @@
-﻿using System.Text.Json;
-using System.Threading.Channels;
+﻿using System.Collections.Concurrent;
+using System.Text.Json;
 using FileLink.Controllers;
 using FileLink.Hubs;
 using FileLink.Plugin;
@@ -12,49 +12,70 @@ namespace FileLink.Services;
 
 public class QueuedBackgroundService : BackgroundService
 {
-    private readonly Channel<WorkItem> _queue;
+    private readonly BackgroundTaskQueue _taskQueue;
+    private readonly ILogger<QueuedBackgroundService> _logger;
 
-    public QueuedBackgroundService(Channel<WorkItem> queue)
+    public QueuedBackgroundService(BackgroundTaskQueue taskQueue, ILogger<QueuedBackgroundService> logger)
     {
-        _queue = queue;
+        _taskQueue = taskQueue;
+        _logger = logger;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        await foreach (var workItem in _queue.Reader.ReadAllAsync(stoppingToken))
+        _logger.LogInformation("Polling Background Service started");
+
+        while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
-                await workItem.Action(stoppingToken);
+                if (_taskQueue.TryDequeue(out var workItem))
+                {
+                    if (workItem == null)
+                    {
+                        _logger.LogWarning("Work item is null");
+                        continue;
+                    }
+                    await workItem.Action(stoppingToken);
+                }
+                else
+                {
+                    // No work available, wait a bit before polling again
+                    await Task.Delay(1000, stoppingToken); // Poll every 100ms
+                }
             }
-            catch (Exception)
+            catch (OperationCanceledException)
             {
-                // Log or handle error
+                // Expected when cancellation is requested
+                break;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred executing background task");
+                // Continue processing other items
             }
         }
+
+
     }
 }
 
-public class BackgroundTaskQueue : IBackgroundTaskQueue
+public class BackgroundTaskQueue
 {
     private readonly IHubContext<UploadItemHub> _hubContext;
-    private readonly Channel<WorkItem> _queue;
+    private readonly ConcurrentQueue<WorkItem> _queue;
     private readonly IEnumerable<IFilePlugin> _filePlugins;
     private readonly ILogger<BackgroundTaskQueue> _logger;
     private readonly PreSignUrlService _preSignUrlService;
     private readonly JsonSerializerOptions _options;
     public BackgroundTaskQueue(IEnumerable<IFilePlugin> filePlugins, ILogger<BackgroundTaskQueue> logger, IHubContext<UploadItemHub> hubContext, PreSignUrlService preSignUrlService, IOptions<JsonOptions> jsonOptions)
     {
-        _queue = Channel.CreateUnbounded<WorkItem>();
+        _queue = new ConcurrentQueue<WorkItem>();
         _filePlugins = filePlugins;
         _logger = logger;
         _hubContext = hubContext;
         _preSignUrlService = preSignUrlService;
         _options = jsonOptions.Value.SerializerOptions;
-    }
-    public async ValueTask QueueWork(WorkItem workItem)
-    {
-        await _queue.Writer.WriteAsync(workItem);
     }
 
     public ValueTask QueueFileProcessAsync(UploadItem item)
@@ -87,8 +108,8 @@ public class BackgroundTaskQueue : IBackgroundTaskQueue
                     }
                 };
 
-                // Fire and forget - don't await this
-                _ = _queue.Writer.WriteAsync(workItem);
+                _queue.Enqueue(workItem);
+                _logger.LogDebug("Queued work item for file: {FileName}", item.FileName);
             }
             else
             {
@@ -98,8 +119,15 @@ public class BackgroundTaskQueue : IBackgroundTaskQueue
 
         return ValueTask.CompletedTask;
     }
-
-    public Channel<WorkItem> GetChannel() => _queue;
+    public bool TryDequeue(out WorkItem? workItem)
+    {
+        return _queue.TryDequeue(out workItem);
+    }
+    public void QueueWork(WorkItem workItem)
+    {
+        _queue.Enqueue(workItem);
+    }
+    public int QueueCount => _queue.Count;
 }
 public class WorkItem
 {
