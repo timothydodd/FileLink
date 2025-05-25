@@ -135,35 +135,13 @@ public class FileController : ControllerBase
     [Authorize(Policy = Constants.AuthPolicy.RequireEditorRole)]
     public async Task<List<CreateUploadItemResponse>> LinkLocalAsync(Guid groupId, [FromBody] List<AddLocalPath> items)
     {
-        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-        _logger.LogInformation("LinkLocalAsync started for groupId: {GroupId} with {ItemCount} items", groupId, items.Count);
-
         List<CreateUploadItemResponse> result = new List<CreateUploadItemResponse>();
-
-        for (int i = 0; i < items.Count; i++)
+        foreach (var item in items)
         {
-            var item = items[i];
-            var itemStopwatch = System.Diagnostics.Stopwatch.StartNew();
-            _logger.LogInformation("Processing item {ItemIndex}/{TotalItems}: {Path}", i + 1, items.Count, item.Path);
-
-            // Time path resolution
-            var pathStart = System.Diagnostics.Stopwatch.StartNew();
             var fullPath = _localFileCache.GetLocalFullPath(item.LocalPathIndex, item.Path);
-            pathStart.Stop();
-            _logger.LogInformation("Path resolution took {PathMs}ms for item {ItemIndex}", pathStart.ElapsedMilliseconds, i + 1);
-
-            // Time file existence check
-            var fileCheckStart = System.Diagnostics.Stopwatch.StartNew();
             var fileInfo = new FileInfo(fullPath);
-            var fileExists = fileInfo.Exists;
-            fileCheckStart.Stop();
-            _logger.LogInformation("File existence check took {FileCheckMs}ms for item {ItemIndex}, exists: {FileExists}",
-                fileCheckStart.ElapsedMilliseconds, i + 1, fileExists);
-
-            if (fileExists)
+            if (fileInfo.Exists)
             {
-                // Time object creation
-                var objectCreationStart = System.Diagnostics.Stopwatch.StartNew();
                 var uploadItem = new UploadItem()
                 {
                     ItemId = Guid.NewGuid(),
@@ -173,37 +151,12 @@ public class FileController : ControllerBase
                     Size = fileInfo.Length,
                     CreatedDate = DateTime.UtcNow,
                 };
-                objectCreationStart.Stop();
-                _logger.LogInformation("Object creation took {ObjectMs}ms for item {ItemIndex}, file size: {FileSize} bytes",
-                    objectCreationStart.ElapsedMilliseconds, i + 1, uploadItem.Size);
 
-                // Time database insert
-                var dbStart = System.Diagnostics.Stopwatch.StartNew();
                 await _uploadItemRepo.Create(uploadItem);
-                dbStart.Stop();
-                _logger.LogInformation("Database insert took {DbMs}ms for item {ItemIndex}", dbStart.ElapsedMilliseconds, i + 1);
-
-                // Time background queue
-                var queueStart = System.Diagnostics.Stopwatch.StartNew();
                 await _backgroundTaskQueue.QueueFileProcessAsync(uploadItem);
-                queueStart.Stop();
-                _logger.LogInformation("Background queue took {QueueMs}ms for item {ItemIndex}", queueStart.ElapsedMilliseconds, i + 1);
-
                 result.Add(new CreateUploadItemResponse(uploadItem.ItemId));
             }
-            else
-            {
-                _logger.LogWarning("File does not exist: {FullPath}", fullPath);
-            }
-
-            itemStopwatch.Stop();
-            _logger.LogInformation("Total time for item {ItemIndex}: {ItemMs}ms", i + 1, itemStopwatch.ElapsedMilliseconds);
         }
-
-        stopwatch.Stop();
-        _logger.LogInformation("LinkLocalAsync completed in {TotalMs}ms, processed {ResultCount} valid items out of {TotalItems}",
-            stopwatch.ElapsedMilliseconds, result.Count, items.Count);
-
         return result;
     }
 

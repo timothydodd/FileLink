@@ -57,11 +57,10 @@ public class BackgroundTaskQueue : IBackgroundTaskQueue
         await _queue.Writer.WriteAsync(workItem);
     }
 
-    public async ValueTask QueueFileProcessAsync(UploadItem item)
+    public ValueTask QueueFileProcessAsync(UploadItem item)
     {
         foreach (var plugin in _filePlugins)
         {
-
             if (plugin.HasFileType(Path.GetExtension(item.FileName)))
             {
                 var workItem = new WorkItem
@@ -69,13 +68,11 @@ public class BackgroundTaskQueue : IBackgroundTaskQueue
                     Action = async token =>
                     {
                         _logger.LogInformation("Processing with plugin: {PluginName}", plugin.GetType().Name);
-
                         _logger.LogInformation("Processing file: {FileName}", item.FileName);
 
                         await plugin.Process(item);
 
                         var uploadItemResponse = UploadItemResponse.FromUploadItem(_preSignUrlService, item);
-                        var options = new JsonSerializerOptions() { WriteIndented = false, };
                         var groupItemChanged = new GroupItemChanged()
                         {
                             GroupId = item.GroupId,
@@ -89,13 +86,17 @@ public class BackgroundTaskQueue : IBackgroundTaskQueue
                         _logger.LogInformation("Finished processing file: {FileName}", item.FileName);
                     }
                 };
-                await _queue.Writer.WriteAsync(workItem);
+
+                // Fire and forget - don't await this
+                _ = _queue.Writer.WriteAsync(workItem);
             }
             else
             {
                 _logger.LogInformation("Skipping file: {FileName}", item.FileName);
             }
         }
+
+        return ValueTask.CompletedTask;
     }
 
     public Channel<WorkItem> GetChannel() => _queue;
