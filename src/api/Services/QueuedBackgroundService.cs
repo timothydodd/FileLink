@@ -15,14 +15,14 @@ public class BackgroundTaskQueue
 {
     private readonly IHubContext<UploadItemHub> _hubContext;
     private readonly ConcurrentQueue<WorkItem> _queue;
-    private readonly IEnumerable<IFilePlugin> _filePlugins;
+    private readonly List<IFilePlugin> _filePlugins;
     private readonly ILogger<BackgroundTaskQueue> _logger;
     private readonly PreSignUrlService _preSignUrlService;
     private readonly JsonSerializerOptions _options;
     public BackgroundTaskQueue(IEnumerable<IFilePlugin> filePlugins, ILogger<BackgroundTaskQueue> logger, IHubContext<UploadItemHub> hubContext, PreSignUrlService preSignUrlService, IOptions<JsonOptions> jsonOptions)
     {
         _queue = new ConcurrentQueue<WorkItem>();
-        _filePlugins = filePlugins;
+        _filePlugins = filePlugins.ToList();
         _logger = logger;
         _hubContext = hubContext;
         _preSignUrlService = preSignUrlService;

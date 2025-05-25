@@ -136,18 +136,22 @@ public class FileController : ControllerBase
     [Authorize(Policy = Constants.AuthPolicy.RequireEditorRole)]
     public async Task<List<CreateUploadItemResponse>> LinkLocalAsync(Guid groupId, [FromBody] List<AddLocalPath> items)
     {
+        var totalProcessingTime = 0;
         var stopwatch = Stopwatch.StartNew();
         _logger.LogInformation("Linking local files to group {GroupId}", groupId);
         List<CreateUploadItemResponse> result = new List<CreateUploadItemResponse>();
-        foreach (var item in items)
+        for (int i = 0; i < items.Count; i++)
         {
+            stopwatch.Restart();
+            AddLocalPath? item = items[i];
             var time1 = stopwatch.Elapsed.TotalMilliseconds;
-            _logger.LogInformation("CheckPath start - " + time1.ToString());
+            _logger.LogInformation($"CheckPath start: {item.Path} - {time1}");
             var fullPath = _localFileCache.GetLocalFullPath(item.LocalPathIndex, item.Path);
             var fileInfo = new FileInfo(fullPath);
-            _logger.LogInformation("CheckPath end - " + (stopwatch.Elapsed.TotalMilliseconds - time1).ToString());
+
             if (fileInfo.Exists)
             {
+                _logger.LogInformation($"CheckPath end: {item.Path} - {stopwatch.Elapsed.TotalMilliseconds - time1}");
                 var uploadItem = new UploadItem()
                 {
                     ItemId = Guid.NewGuid(),
@@ -158,16 +162,25 @@ public class FileController : ControllerBase
                     CreatedDate = DateTime.UtcNow,
                 };
                 var time2 = stopwatch.Elapsed.TotalMilliseconds;
-                _logger.LogInformation("CreateUploadItem start");
+                _logger.LogInformation($"CreateUploadItem start: {item.Path}");
                 await _uploadItemRepo.Create(uploadItem);
-                _logger.LogInformation("CreateUploadItem end - " + (stopwatch.Elapsed.TotalMilliseconds - time2).ToString());
+                _logger.LogInformation($"CreateUploadItem end: {item.Path} -  {stopwatch.Elapsed.TotalMilliseconds - time2}");
                 var time3 = stopwatch.Elapsed.TotalMilliseconds;
-                _logger.LogInformation("QueueFileProcessAsync start");
+                _logger.LogInformation($"QueueFileProcessAsync start:  {item.Path}");
                 _backgroundTaskQueue.QueueFileProcessAsync(uploadItem);
-                _logger.LogInformation("QueueFileProcessAsync end - " + (stopwatch.Elapsed.TotalMilliseconds - time3).ToString());
+                _logger.LogInformation($"QueueFileProcessAsync end: {item.Path} - {stopwatch.Elapsed.TotalMilliseconds - time3}");
                 result.Add(new CreateUploadItemResponse(uploadItem.ItemId));
             }
+            else
+            {
+                _logger.LogInformation("CheckPath end: {item.Path} - " + (stopwatch.Elapsed.TotalMilliseconds - time1).ToString());
+            }
+            _logger.LogInformation("total time: {item.Path} - " + stopwatch.Elapsed.TotalMilliseconds.ToString());
+            totalProcessingTime += (int)stopwatch.Elapsed.TotalMilliseconds;
+
+
         }
+        _logger.LogInformation("Total processing time: {GroupId} - " + totalProcessingTime.ToString());
         return result;
     }
 

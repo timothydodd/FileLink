@@ -50,7 +50,7 @@ public class MoviePlugin : IFilePlugin
                 {
                     metadata.SeriesPoster = await GetSeriesPoster(series);
                     if (metadata.SeriesPoster != null)
-                        _seriesPostersCache.Add(seriesName, metadata.SeriesPoster);
+                        _seriesPostersCache.TryAdd(seriesName, metadata.SeriesPoster);
                 }
             }
 
