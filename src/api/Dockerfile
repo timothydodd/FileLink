@@ -19,9 +19,9 @@ RUN dotnet restore "api/FileLink.csproj"
 
 # Install Node.js and Angular CLI — do this BEFORE copying full project to leverage cache
 RUN apt-get update && apt-get install -y curl gnupg \
-    && curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
+    && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y nodejs \
-    && npm install -g @angular/cli@18
+    && npm install -g @angular/cli@20
 
 # Cache node_modules: copy just Angular package files first
 COPY web/file-link/package*.json web/file-link/
