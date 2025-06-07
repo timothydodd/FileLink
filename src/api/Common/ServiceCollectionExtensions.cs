@@ -183,31 +183,5 @@ public static class ServiceCollectionExtensions
         }
         return services;
     }
-    public static IServiceCollection AddLargeFileSupport(this IServiceCollection services, ConfigureWebHostBuilder webHost)
 
-    {// Configure Kestrel for large uploads in Docker
-        //services.Configure<KestrelServerOptions>(options =>
-        //{
-        //    options.Limits.MaxRequestBodySize = null; // or 100_000_000 for 100MB
-        //    options.Limits.RequestHeadersTimeout = TimeSpan.FromMinutes(30);
-        //    options.Limits.KeepAliveTimeout = TimeSpan.FromMinutes(30);
-
-        //});
-
-
-        //services.Configure<FormOptions>(options =>
-        //{
-        //    options.ValueLengthLimit = int.MaxValue;
-        //    options.MultipartBodyLengthLimit = long.MaxValue;
-        //    options.MemoryBufferThreshold = int.MaxValue;
-        //    // This is the key setting - disable buffering
-        //    options.BufferBody = false;
-        //});
-
-        //webHost.ConfigureKestrel(options =>
-        //{
-        //    options.Limits.MaxRequestBodySize = long.MaxValue;
-        //});
-        return services;
-    }
 }

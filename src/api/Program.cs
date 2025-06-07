@@ -42,7 +42,7 @@ public class Program
             .AddApplicationServices()
             .AddOmdbPlugin(config, logger);
 
-        builder.Services.AddLargeFileSupport(builder.WebHost);
+
 
         bool isDevelopment = builder.Environment.IsDevelopment();
         builder.Services.AddAuthorization(ops =>
