@@ -18,7 +18,7 @@
     "@angular/forms": "^20.0.2",
     "@angular/platform-browser": "^20.0.2",
     "@angular/platform-browser-dynamic": "^20.0.2",
-    "@angular/router": "^20.0.2",
+    "@angular/router": "^20.0.5",
     "@fancyapps/ui": "^5.0.36",
     "@microsoft/signalr": "^8.0.7",
     "jwt-decode": "^4.0.0",
