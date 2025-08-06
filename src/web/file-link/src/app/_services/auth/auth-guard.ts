@@ -14,7 +14,7 @@ export class AuthGuard {
 
   canActivate(
     next: ActivatedRouteSnapshot,
-    state: RouterStateSnapshot
+    _state: RouterStateSnapshot
   ): Observable<boolean | UrlTree> | Promise<boolean | UrlTree> | boolean {
     const x = this.authService.isAuthenticated$.pipe(
       switchMap((z) => {

@@ -77,7 +77,7 @@ export class LoginPageComponent {
       next: (x) => {
         if (x.token) this.authService.setToken(x.token, x.refreshToken, x.expiresIn);
       },
-      error: (err) => {
+      error: (_err) => {
         this.error.set('Login failed');
       },
     });

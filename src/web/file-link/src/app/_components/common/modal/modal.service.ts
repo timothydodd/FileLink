@@ -16,7 +16,7 @@ export class ModalService {
         filter((event) => event instanceof NavigationEnd),
         takeUntilDestroyed()
       )
-      .subscribe((event: NavigationEnd) => {
+      .subscribe((_event: NavigationEnd) => {
         this.close();
       });
   }

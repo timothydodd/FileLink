@@ -96,7 +96,7 @@ export class ModalComponent {
     });
   }
 
-  close(e: boolean) {
+  close(_e: boolean) {
     this.modalService.modalEvent.next(null);
   }
   open() {

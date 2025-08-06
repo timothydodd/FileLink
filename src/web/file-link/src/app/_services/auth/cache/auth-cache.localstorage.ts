@@ -12,7 +12,7 @@ export class LocalStorageCache implements IAuthCache {
     try {
       const payload = JSON.parse(json) as T;
       return payload;
-    } catch (e) {
+    } catch (_e) {
       return null;
     }
   }

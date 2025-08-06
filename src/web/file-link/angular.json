@@ -24,8 +24,7 @@
                 "input": "public"
               }
             ],
-            "styles": ["node_modules/@fancyapps/ui/dist/fancybox/fancybox.css", "src/styles.css"],
-          
+            "styles": ["node_modules/@fancyapps/ui/dist/fancybox/fancybox.css", "src/styles.css"]
           },
           "configurations": {
             "production": {
@@ -97,6 +96,15 @@
               "src/styles.css"
             ],
             "scripts": [ ]
+          }
+        },
+        "lint": {
+          "builder": "@angular-eslint/builder:lint",
+          "options": {
+            "lintFilePatterns": [
+              "src/**/*.ts",
+              "src/**/*.html"
+            ]
           }
         }
       }

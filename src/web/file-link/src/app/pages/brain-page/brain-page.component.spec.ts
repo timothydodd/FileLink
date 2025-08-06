@@ -8,10 +8,9 @@ describe('BrainPageComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [BrainPageComponent]
-    })
-    .compileComponents();
-    
+      imports: [BrainPageComponent],
+    }).compileComponents();
+
     fixture = TestBed.createComponent(BrainPageComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();

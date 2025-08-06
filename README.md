@@ -88,7 +88,7 @@ To enable this feature, set your `OmdbSettings__ApiKey` environment variable wit
 ##  Tech Stack
 
 * **Backend:** ASP.NET Core 9
-* **Frontend:** Angular 19
+* **Frontend:** Angular 20
 * **Database:** SQLite or MySQL
 * **Containerized:** Runs easily in Docker or k8s
 

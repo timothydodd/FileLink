@@ -1,6 +1,6 @@
 # FileLink
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 19.2.0.
+This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 20.1.5.
 
 ## Development server
 
@@ -25,6 +25,22 @@ For a complete list of available schematics (such as `components`, `directives`,
 ```bash
 ng generate --help
 ```
+
+## Code Quality
+
+To run linting checks, use:
+
+```bash
+ng lint
+```
+
+To automatically fix linting issues, run:
+
+```bash
+ng lint --fix
+```
+
+This project uses ESLint with Angular-specific rules, TypeScript rules, and Prettier for code formatting.
 
 ## Building
 

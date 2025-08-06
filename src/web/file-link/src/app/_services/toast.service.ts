@@ -75,6 +75,6 @@ export class ToastService {
    * Clear all toasts
    */
   clear(): void {
-    this.toasts.update((toasts) => []);
+    this.toasts.update((_toasts) => []);
   }
 }

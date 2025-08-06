@@ -2,9 +2,9 @@ import { ChangeDetectionStrategy, Component, computed, input } from '@angular/co
 import { SkeletonComponent } from '../skeleton/skeleton';
 
 @Component({
-    selector: 'lib-skeleton-table-row',
-    imports: [SkeletonComponent],
-    template: `
+  selector: 'lib-skeleton-table-row',
+  imports: [SkeletonComponent],
+  template: `
     @for (r of rowsView(); track $index) {
       <tr>
         @for (c of columnsView(); track $index) {
@@ -15,8 +15,8 @@ import { SkeletonComponent } from '../skeleton/skeleton';
       </tr>
     }
   `,
-    styleUrl: './skeleton-table-row.component.scss',
-    changeDetection: ChangeDetectionStrategy.OnPush
+  styleUrl: './skeleton-table-row.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SkeletonTableRowComponent {
   columns = input.required<number>();

@@ -55,8 +55,8 @@ export class CheckComponent implements ControlValueAccessor {
   @Output()
   checkedEvent = new EventEmitter<boolean>();
 
-  private onChange: Function;
-  private onTouched: Function;
+  private onChange: (value: any) => void;
+  private onTouched: () => void;
 
   writeValue(obj: any): void {
     this.checked = obj;
@@ -69,7 +69,7 @@ export class CheckComponent implements ControlValueAccessor {
   registerOnTouched(fn: any): void {
     this.onTouched = fn;
   }
-  change(e: any) {
+  change(_e: any) {
     this.onChange(this.checked);
     this.checkedEvent.emit(this.checked);
     this.onTouched();

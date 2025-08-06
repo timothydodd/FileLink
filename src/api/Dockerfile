@@ -21,7 +21,7 @@ RUN dotnet restore "api/FileLink.csproj"
 RUN apt-get update && apt-get install -y curl gnupg \
     && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y nodejs \
-    && npm install -g @angular/cli@20
+    && npm install -g @angular/cli@20.1.5
 
 # Cache node_modules: copy just Angular package files first
 COPY web/file-link/package*.json web/file-link/

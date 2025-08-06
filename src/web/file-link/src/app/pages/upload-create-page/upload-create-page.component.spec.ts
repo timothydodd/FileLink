@@ -8,10 +8,9 @@ describe('PdfCreatePageComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [UploadCreatePageComponent]
-    })
-    .compileComponents();
-    
+      imports: [UploadCreatePageComponent],
+    }).compileComponents();
+
     fixture = TestBed.createComponent(UploadCreatePageComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();

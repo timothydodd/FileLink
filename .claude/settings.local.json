@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm update:*)",
+      "Bash(npm run lint:*)"
+    ],
+    "deny": []
+  }
+}
