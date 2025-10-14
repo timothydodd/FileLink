@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import {
   AfterViewInit,
+  ChangeDetectionStrategy,
   Component,
   computed,
   DestroyRef,
@@ -36,6 +37,7 @@ import { UploadChunkService } from '../../_services/web-api/upload-chunk.service
 import { LocalFile, UploadItemResponse, UploadService } from '../../_services/web-api/upload.service';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     CommonModule,
