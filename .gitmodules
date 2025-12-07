@@ -1,0 +1,3 @@
+[submodule "libs/RoboDodd.OrmLite"]
+	path = libs/RoboDodd.OrmLite
+	url = https://github.com/timothydodd/RoboDodd.OrmLite.git
