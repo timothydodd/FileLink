@@ -1,7 +1,6 @@
 ﻿using FileLink.Repos;
 using LogMkApi.Services;
-using ServiceStack.Data;
-using ServiceStack.OrmLite;
+using RoboDodd.OrmLite;
 
 namespace FileLink.Services;
 
@@ -17,24 +16,23 @@ public class DatabaseInitializer
 
     public void CreateTable()
     {
-        using (var db = _dbFactory.OpenDbConnection())
+        using var db = _dbFactory.CreateDbConnection();
+        db.Open();
+        db.CreateTableIfNotExists<UploadItem>();
+        db.CreateTableIfNotExists<UploadGroup>();
+        db.CreateTableIfNotExists<LinkCode>();
+        db.CreateTableIfNotExists<RefreshToken>();
+        if (db.CreateTableIfNotExists<AppUser>())
         {
-            db.CreateTableIfNotExists<UploadItem>();
-            db.CreateTableIfNotExists<UploadGroup>();
-            db.CreateTableIfNotExists<LinkCode>();
-            db.CreateTableIfNotExists<RefreshToken>();
-            if (db.CreateTableIfNotExists<AppUser>())
+            var user = new AppUser
             {
-                var user = new AppUser
-                {
-                    AppUserId = Guid.NewGuid(),
-                    UserName = "admin",
-                    PasswordHash = "",
-                    TimeStamp = DateTime.UtcNow
-                };
-                user.PasswordHash = _passwordService.HashPassword(user, "admin");
-                db.Insert(user);
-            }
+                AppUserId = Guid.NewGuid(),
+                UserName = "admin",
+                PasswordHash = "",
+                TimeStamp = DateTime.UtcNow
+            };
+            user.PasswordHash = _passwordService.HashPassword(user, "admin");
+            db.Insert(user);
         }
     }
 }

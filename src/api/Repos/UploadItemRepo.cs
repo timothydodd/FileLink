@@ -1,6 +1,5 @@
-﻿using ServiceStack.Data;
-using ServiceStack.DataAnnotations;
-using ServiceStack.OrmLite;
+﻿using Dapper;
+using RoboDodd.OrmLite;
 
 namespace FileLink.Repos;
 
@@ -14,32 +13,35 @@ public class UploadItemRepo
     }
     public async Task UpdateAsync(UploadItem uploadItem)
     {
-        using var db = _dbFactory.OpenDbConnection();
+        using var db = _dbFactory.CreateDbConnection();
+        db.Open();
         await db.UpdateAsync(uploadItem);
     }
-    public async Task<UploadItem> Get(Guid id)
+    public async Task<UploadItem?> Get(Guid id)
     {
-        using var db = _dbFactory.OpenDbConnection();
+        using var db = _dbFactory.CreateDbConnection();
+        db.Open();
         return await db.SingleByIdAsync<UploadItem>(id);
     }
     public async Task<List<UploadItem>> GetByGroupId(Guid groupId)
     {
-        using var db = _dbFactory.OpenDbConnection();
+        using var db = _dbFactory.CreateDbConnection();
+        db.Open();
         return await db.SelectAsync<UploadItem>(x => x.GroupId == groupId);
     }
     public async Task<UploadItem> Create(UploadItem uploadItem)
     {
-        using var db = _dbFactory.OpenDbConnection();
+        using var db = _dbFactory.CreateDbConnection();
+        db.Open();
         await db.InsertAsync(uploadItem);
         return uploadItem;
     }
     public async Task<List<UploadItem>> GetAllItemsWithOutMetadata()
     {
-        using var db = _dbFactory.OpenDbConnection();
-        return await db.SelectAsync<UploadItem>("SELECT * FROM UploadItem WHERE Metadata IS NULL");
-
-
-
+        using var db = _dbFactory.CreateDbConnection();
+        db.Open();
+        var result = await db.QueryAsync<UploadItem>("SELECT * FROM UploadItem WHERE Metadata IS NULL");
+        return result.ToList();
     }
 }
 public class UploadItem
@@ -50,7 +52,7 @@ public class UploadItem
     public Guid GroupId { get; set; }
     public required string FileName { get; set; }
     public required string PhysicalPath { get; set; }
-    [Default(typeof(DateTime), "CURRENT_TIMESTAMP")] // Set default timestamp
+    [Default(typeof(DateTime), "CURRENT_TIMESTAMP")]
     public DateTime CreatedDate { get; set; }
     [CustomField("JSON")]
     public string? Metadata { get; set; }

@@ -1,7 +1,7 @@
-﻿using FileLink.Common;
+﻿using Dapper;
+using FileLink.Common;
 using FileLink.Repos;
-using ServiceStack.Data;
-using ServiceStack.OrmLite;
+using RoboDodd.OrmLite;
 
 namespace LogSummaryService
 {
@@ -79,9 +79,9 @@ namespace LogSummaryService
         {
             // get all UploadGroup's without a linkcode and are atleast 24hours old or the linkcode has been expired for 24hours
 
-            using (var db = _dbFactory.OpenDbConnection())
-            {
-                var sql = @"
+            using var db = _dbFactory.CreateDbConnection();
+            db.Open();
+            var sql = @"
 
 SELECT ug.*
 FROM UploadGroup ug
@@ -91,33 +91,30 @@ WHERE
    lc.ExpireDate < datetime('now', '-24 hours'))
   AND ug.CreatedDate < datetime('now', '-24 hours');
 ";
-                var uploadGroups = db.Select<UploadGroup>(sql);
-                foreach (var uploadGroup in uploadGroups)
-                {
-                    _logger.LogInformation($"Deleting UploadGroup {uploadGroup.GroupId} with no linkcode or expired linkcode");
-                    // delete the linkcode
-                    await db.DeleteAsync<LinkCode>(x => x.GroupId == uploadGroup.GroupId);
-                    // delete the upload items
-                    await db.DeleteAsync<UploadItem>(x => x.GroupId == uploadGroup.GroupId);
-                    // delete the upload group
-                    await db.DeleteAsync<UploadGroup>(x => x.GroupId == uploadGroup.GroupId);
-                    // delete the upload group
-                }
+            var uploadGroups = await db.QueryAsync<UploadGroup>(sql);
+            foreach (var uploadGroup in uploadGroups)
+            {
+                _logger.LogInformation($"Deleting UploadGroup {uploadGroup.GroupId} with no linkcode or expired linkcode");
+                // delete the linkcode
+                await db.DeleteAsync<LinkCode>(x => x.GroupId == uploadGroup.GroupId);
+                // delete the upload items
+                await db.DeleteAsync<UploadItem>(x => x.GroupId == uploadGroup.GroupId);
+                // delete the upload group
+                await db.DeleteAsync<UploadGroup>(x => x.GroupId == uploadGroup.GroupId);
+                // delete the upload group
             }
-
         }
         private async Task CleanUpExpiredFiles()
         {
             await CleanUpUploadGroups();
             var validFileNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var path = StorageSettings.ResolvePath(_storageSettings.SharedFilesPath);
-            using (var db = _dbFactory.OpenDbConnection())
+            using var db = _dbFactory.CreateDbConnection();
+            db.Open();
+            var allUploadItems = await db.SelectAsync<UploadItem>();
+            foreach (var uploadItem in allUploadItems)
             {
-                var allUploadItems = await db.SelectAsync<UploadItem>();
-                foreach (var uploadItem in allUploadItems)
-                {
-                    validFileNames.Add(Path.GetFileName(uploadItem.PhysicalPath));
-                }
+                validFileNames.Add(Path.GetFileName(uploadItem.PhysicalPath));
             }
             var files = Directory.GetFiles(path, "*.*", SearchOption.AllDirectories);
             foreach (var file in files)
@@ -157,4 +154,3 @@ WHERE
         }
     }
 }
-

@@ -1,9 +1,9 @@
 ﻿namespace FileLink.Common.HealthCheck;
 
-using System.Data.SQLite; // or Microsoft.Data.Sqlite if you're using that
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 public class SqliteHealthCheck : IHealthCheck
@@ -24,7 +24,7 @@ public class SqliteHealthCheck : IHealthCheck
 
         try
         {
-            using var connection = new SQLiteConnection(_connectionString);
+            using var connection = new SqliteConnection(_connectionString);
             await connection.OpenAsync(cancellationToken);
             using var command = connection.CreateCommand();
             command.CommandText = $"SELECT * FROM {_table} limit 1";

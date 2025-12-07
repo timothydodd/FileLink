@@ -1,7 +1,5 @@
-﻿using ServiceStack.Data;
-using ServiceStack.DataAnnotations;
-using ServiceStack.OrmLite;
-using ServiceStack.OrmLite.Dapper;
+﻿using Dapper;
+using RoboDodd.OrmLite;
 
 namespace FileLink.Repos;
 
@@ -15,18 +13,21 @@ public class LinkCodeRepo
     }
     public async Task<LinkCode> GetByCode(string code)
     {
-        using var db = _dbFactory.OpenDbConnection();
+        using var db = _dbFactory.CreateDbConnection();
+        db.Open();
         return await db.QuerySingleAsync<LinkCode>("select * from LinkCode where Code = @code", new { code });
     }
     public async Task<LinkCode> Get(Guid groupId, Guid appUserId)
     {
-        using var db = _dbFactory.OpenDbConnection();
+        using var db = _dbFactory.CreateDbConnection();
+        db.Open();
         return await db.QuerySingleAsync<LinkCode>("select * from LinkCode where GroupId = @GroupId AND AppUserId = @AppUserId", new { GroupId = groupId, AppUserId = appUserId });
     }
     public async Task<IEnumerable<LinkCodeWithItemCount>> GetAll()
     {
-        using var db = _dbFactory.OpenDbConnection();
-        return await db.SelectAsync<LinkCodeWithItemCount>(
+        using var db = _dbFactory.CreateDbConnection();
+        db.Open();
+        return await db.QueryAsync<LinkCodeWithItemCount>(
             @"
 select lc.*, count(ui.ItemId) as ItemCount, SUM(ui.Size) as Size
 from LinkCode lc
@@ -35,32 +36,37 @@ group by lc.Code, lc.GroupId, lc.Role, lc.ExpireDate, lc.AppUserId, lc.MaxUses, 
     }
     public async Task<IEnumerable<LinkCode>> GetAll(Guid groupId)
     {
-        using var db = _dbFactory.OpenDbConnection();
+        using var db = _dbFactory.CreateDbConnection();
+        db.Open();
         return await db.QueryAsync<LinkCode>("select * from LinkCode where GroupId = @GroupId ", new { GroupId = groupId });
     }
     public async Task<LinkCode> Create(LinkCode UploadGroup)
     {
-        using var db = _dbFactory.OpenDbConnection();
+        using var db = _dbFactory.CreateDbConnection();
+        db.Open();
         await db.InsertAsync(UploadGroup);
         return UploadGroup;
     }
 
     internal async Task DeleteShared(Guid groupId)
     {
-        using var db = _dbFactory.OpenDbConnection();
+        using var db = _dbFactory.CreateDbConnection();
+        db.Open();
         await db.ExecuteAsync("DELETE FROM LinkCode WHERE GroupId = @GroupId AND Role = 'Reader'", new { GroupId = groupId });
     }
 
-    internal void Update(LinkCode lc)
+    internal async Task UpdateAsync(LinkCode lc)
     {
-        using var db = _dbFactory.OpenDbConnection();
-        db.Update(lc);
+        using var db = _dbFactory.CreateDbConnection();
+        db.Open();
+        await db.UpdateAsync(lc);
     }
 
-    internal void Delete(LinkCode lc)
+    internal async Task DeleteAsync(LinkCode lc)
     {
-        using var db = _dbFactory.OpenDbConnection();
-        db.Delete(lc);
+        using var db = _dbFactory.CreateDbConnection();
+        db.Open();
+        await db.DeleteAsync(lc);
     }
 }
 public class LinkCode
@@ -74,7 +80,7 @@ public class LinkCode
     public required Guid AppUserId { get; set; }
     public int? MaxUses { get; set; }
     public int? Uses { get; set; }
-    [Default(typeof(DateTime), "CURRENT_TIMESTAMP")] // Set default timestamp
+    [Default(typeof(DateTime), "CURRENT_TIMESTAMP")]
     public DateTime CreatedDate { get; set; }
     public DateTime? LastAccess { get; set; }
 }

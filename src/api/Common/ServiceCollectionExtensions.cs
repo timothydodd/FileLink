@@ -9,9 +9,7 @@ using FileLink.Services;
 using LogMkApi.Services;
 using LogSummaryService;
 using Microsoft.AspNetCore.ResponseCompression;
-using ServiceStack.Data;
-using ServiceStack.OrmLite;
-using ServiceStack.OrmLite.Dapper;
+using RoboDodd.OrmLite;
 
 public static class ServiceCollectionExtensions
 {
@@ -23,30 +21,20 @@ public static class ServiceCollectionExtensions
 
         if (isSqlite)
         {
-
             var dbPath = Path.Combine(StorageSettings.ResolvePath(storageSettings.DatabaseFilesPath), "FileLink.db");
-
-
             logger.LogInformation("Using SQLite database at {dbPath}", dbPath);
-
-
             Directory.CreateDirectory(Path.GetDirectoryName(dbPath)!);
-            connectionString = $"Data Source={dbPath};Version=3;Pooling=true;Max Pool Size=20;BinaryGUID=False";
-
-            SqlMapper.AddTypeHandler(typeof(Guid), new SqliteGuidConverter());
-            SqlMapper.AddTypeHandler(typeof(Guid?), new SqliteGuidConverter());
-            SqlMapper.AddTypeHandler(typeof(DateTime), new DateTimeHandler());
-            SqlMapper.AddTypeHandler(typeof(DateTime?), new DateTimeHandler());
+            connectionString = $"Data Source={dbPath}";
 
             services.AddHealthChecks().AddSqliteCheck(name: "sqlite", connectionString);
-            services.AddSingleton<IDbConnectionFactory>(new OrmLiteConnectionFactory(connectionString, SqliteDialect.Provider));
+            services.AddSingleton<IDbConnectionFactory>(new DbConnectionFactory(connectionString, DatabaseProvider.SQLite));
         }
         else
         {
             connectionString = config.GetConnectionString("DefaultConnection")
                 ?? throw new InvalidOperationException("Missing MySQL connection string");
             services.AddHealthChecks().AddMySql(connectionString);
-            services.AddSingleton<IDbConnectionFactory>(new OrmLiteConnectionFactory(connectionString, MySqlDialect.Provider));
+            services.AddSingleton<IDbConnectionFactory>(new DbConnectionFactory(connectionString, DatabaseProvider.MySql));
         }
 
         services.AddSingleton(storageSettings);

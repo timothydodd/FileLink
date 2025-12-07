@@ -4,7 +4,7 @@ using FileLink.Hubs;
 using FileLink.Plugin;
 using FileLink.Services;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
-using ServiceStack;
+
 namespace FileLink;
 
 public class Program

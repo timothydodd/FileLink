@@ -1,6 +1,4 @@
-﻿using ServiceStack.Data;
-using ServiceStack.DataAnnotations;
-using ServiceStack.OrmLite;
+﻿using RoboDodd.OrmLite;
 
 namespace FileLink.Repos;
 
@@ -15,23 +13,27 @@ public class RefreshTokenRepo
     }
     public async Task<RefreshToken?> GetByToken(string token)
     {
-        using var db = _dbFactory.OpenDbConnection();
+        using var db = _dbFactory.CreateDbConnection();
+        db.Open();
         return await db.SingleAsync<RefreshToken?>(x => x.Token == token);
     }
     public async Task<RefreshToken?> Get(string token, Guid appUserId)
     {
-        using var db = _dbFactory.OpenDbConnection();
+        using var db = _dbFactory.CreateDbConnection();
+        db.Open();
         return await db.SingleAsync<RefreshToken?>(x => x.AppUserId == appUserId && x.Token == token);
     }
     public async Task<RefreshToken> Create(RefreshToken UploadGroup)
     {
-        using var db = _dbFactory.OpenDbConnection();
+        using var db = _dbFactory.CreateDbConnection();
+        db.Open();
         await db.InsertAsync(UploadGroup);
         return UploadGroup;
     }
     public async Task Update(RefreshToken refreshToken)
     {
-        using var db = _dbFactory.OpenDbConnection();
+        using var db = _dbFactory.CreateDbConnection();
+        db.Open();
         await db.UpdateAsync(refreshToken);
     }
 
@@ -41,13 +43,13 @@ public class RefreshToken
 {
     [AutoIncrement]
     [PrimaryKey]
-    public int Id { get; set; } // Primary key
+    public int Id { get; set; }
     [Index]
     public required string Token { get; set; }
     public required Guid AppUserId { get; set; }
     public DateTime ExpiryDate { get; set; }
     public bool IsRevoked { get; set; }
-    [Default(typeof(DateTime), "CURRENT_TIMESTAMP")] // Set default timestamp
+    [Default(typeof(DateTime), "CURRENT_TIMESTAMP")]
     public DateTime CreatedDate { get; set; }
 
 

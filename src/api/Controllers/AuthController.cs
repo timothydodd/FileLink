@@ -110,7 +110,7 @@ public class AuthController : Controller
 
         if (lc.MaxUses.HasValue && lc.Uses >= lc.MaxUses)
         {
-            _linkCodeRepo.Delete(lc);
+            await _linkCodeRepo.DeleteAsync(lc);
             _logger.LogInformation("Code used max times, Code deleted: {Code}", code);
             return BadRequest("Code used max times");
         }
@@ -122,7 +122,7 @@ public class AuthController : Controller
         {
             lc.Uses = 1;
         }
-        _linkCodeRepo.Update(lc);
+        await _linkCodeRepo.UpdateAsync(lc);
         var accessTokenExpiry = TimeSpan.FromMinutes(_authSettings.AccessTokenExpiryInMinutes);
         var token = await _jwtService.AuthToken("Unknown", lc.GroupId, lc.AppUserId,
         lc.Role, accessTokenExpiry);

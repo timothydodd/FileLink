@@ -1,7 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Security.Claims;
 using FileLink.Common.Jwt;
-using ServiceStack;
 
 namespace FileLink.Services;
 
@@ -210,7 +209,7 @@ public class DisposeAction : IDisposable
     /// <param name="action">Action to be executed when this object is disposed.</param>
     public DisposeAction([NotNull] Action action)
     {
-        action.ThrowIfNull(nameof(action));
+        ArgumentNullException.ThrowIfNull(action, nameof(action));
 
         _action = action;
     }

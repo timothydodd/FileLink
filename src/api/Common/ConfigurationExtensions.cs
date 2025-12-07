@@ -1,12 +1,11 @@
-﻿using ServiceStack;
+﻿namespace FileLink.Common;
 
-namespace FileLink.Common;
 public static class ConfigurationExtensions
 {
     public static T GetRequiredValue<T>(this IConfiguration configuration, string key)
     {
         T? value = configuration.GetValue<T>(key);
-        value.ThrowIfNull($"Configuration value '{key}' is required but was not found.");
+        ArgumentNullException.ThrowIfNull(value, $"Configuration value '{key}' is required but was not found.");
         return value;
     }
     public static T GetRequiredConfigurationSection<T>(this IConfiguration configuration, string key) where T : new()

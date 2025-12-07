@@ -1,21 +1,22 @@
 # Base runtime image
-FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
 USER app
 WORKDIR /app
 EXPOSE 8080
 EXPOSE 8081
 
 # Stage for building .NET and Angular projects
-FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG BUILD_CONFIGURATION=Release
 
 # Setup work dir and copy csproj/Angular project files early for cache
 WORKDIR /src
-COPY ["api/FileLink.csproj", "api/"]
-COPY ["web/file-link/file-link.esproj", "web/file-link/"]
+COPY ["src/api/FileLink.csproj", "src/api/"]
+COPY ["src/web/file-link/file-link.esproj", "src/web/file-link/"]
+COPY ["libs/RoboDodd.OrmLite/src/RoboDodd.OrmLite/RoboDodd.OrmLite.csproj", "libs/RoboDodd.OrmLite/src/RoboDodd.OrmLite/"]
 
 # Restore .NET packages early to cache
-RUN dotnet restore "api/FileLink.csproj"
+RUN dotnet restore "src/api/FileLink.csproj"
 
 # Install Node.js and Angular CLI — do this BEFORE copying full project to leverage cache
 RUN apt-get update && apt-get install -y curl gnupg \
@@ -24,8 +25,8 @@ RUN apt-get update && apt-get install -y curl gnupg \
     && npm install -g @angular/cli@20.1.5
 
 # Cache node_modules: copy just Angular package files first
-COPY web/file-link/package*.json web/file-link/
-WORKDIR /src/web/file-link
+COPY src/web/file-link/package*.json src/web/file-link/
+WORKDIR /src/src/web/file-link
 RUN npm install --force
 
 # Now bring in the rest of the source
@@ -33,9 +34,8 @@ COPY . /src
 
 WORKDIR /src
 
-
 # Back to .NET build
-WORKDIR /src/api
+WORKDIR /src/src/api
 
 RUN dotnet build "FileLink.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
