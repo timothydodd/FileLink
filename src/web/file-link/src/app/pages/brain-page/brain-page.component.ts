@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
+import { SpinnerComponent } from '@rd-ui';
 import { catchError, of, switchMap, take } from 'rxjs';
-import { SpinnerComponent } from '../../_components/common/spinner/spinner.component';
 import { AuthService } from '../../_services/auth/auth.service';
 import { RouterHelperService } from '../../_services/route-helper';
 
@@ -8,7 +8,7 @@ import { RouterHelperService } from '../../_services/route-helper';
   selector: 'app-brain-page',
   standalone: true,
   imports: [SpinnerComponent],
-  template: `<app-spinner></app-spinner>`,
+  template: `<rd-spinner></rd-spinner>`,
   styleUrl: './brain-page.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

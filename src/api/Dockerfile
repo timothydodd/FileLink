@@ -22,7 +22,7 @@ RUN dotnet restore "src/api/FileLink.csproj"
 RUN apt-get update && apt-get install -y curl gnupg \
     && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y nodejs \
-    && npm install -g @angular/cli@20.1.5
+    && npm install -g @angular/cli@21
 
 # Cache node_modules: copy just Angular package files first
 COPY src/web/file-link/package*.json src/web/file-link/
@@ -33,6 +33,10 @@ RUN npm install --force
 COPY . /src
 
 WORKDIR /src
+
+# Build rd-ui library before main app build
+WORKDIR /src/src/web/file-link
+RUN npm run lib:build
 
 # Back to .NET build
 WORKDIR /src/src/api

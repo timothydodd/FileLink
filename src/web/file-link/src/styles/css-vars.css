@@ -15,4 +15,19 @@
   --dark-color: #24225b;
   --hover-color: #86a7fc;
   --alt-background: rgb(234, 234, 234);
+
+  /* rd-ui CSS variable mappings */
+  --rd-background: #ffffff;
+  --rd-foreground: var(--font-color);
+  --rd-primary: var(--primary);
+  --rd-surface: var(--control-background);
+  --rd-surface-variant: var(--alt-background);
+  --rd-surface-container: var(--light);
+  --rd-on-surface: var(--font-color);
+  --rd-on-surface-muted: var(--title-color);
+  --rd-border-color: var(--border-color);
+  --rd-focus-ring: var(--primary);
+  --rd-dropdown-bg: #ffffff;
+  --rd-border-radius: 8px;
+  --rd-success: var(--green-color);
 }

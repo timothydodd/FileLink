@@ -1,8 +1,8 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal, TemplateRef, viewChild } from '@angular/core';
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { ToastService } from '@rd-ui';
 import { LucideAngularModule } from 'lucide-angular';
-import { ToastService } from '../../_services/toast.service';
 import { AuthLinkService } from '../../_services/web-api/auth-link.service';
 import { ModalService } from '../common/modal/modal.service';
 

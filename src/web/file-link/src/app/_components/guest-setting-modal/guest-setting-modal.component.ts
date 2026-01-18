@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, signal, TemplateRef, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { CheckboxComponent } from '@rd-ui';
 import { LucideAngularModule } from 'lucide-angular';
 import { LoginCodeDisplayComponent } from '../../_components/login-code-display/login-code-display.component';
 import { Constants } from '../../_helpers/constants';
@@ -8,13 +9,12 @@ import { AuthService } from '../../_services/auth/auth.service';
 import { JwtAuthProvider } from '../../_services/auth/providers/jwt-auth-provider.service';
 import { UserPreferenceService } from '../../_services/user-prefrences.service';
 import { UploadService } from '../../_services/web-api/upload.service';
-import { CheckComponent } from '../common/check/check.component';
 import { ModalService } from '../common/modal/modal.service';
 
 @Component({
   standalone: true,
   selector: 'app-guest-setting-modal',
-  imports: [CommonModule, FormsModule, LoginCodeDisplayComponent, CheckComponent, LucideAngularModule],
+  imports: [CommonModule, FormsModule, LoginCodeDisplayComponent, CheckboxComponent, LucideAngularModule],
   template: `
     <ng-template #modalBody>
       <div>
@@ -24,11 +24,11 @@ import { ModalService } from '../common/modal/modal.service';
     </ng-template>
     <ng-template #modalFooter>
       <div class="flex-row gap20">
-        <app-check
-          [checked]="cacheKey()"
+        <rd-checkbox
+          [ngModel]="cacheKey()"
           label="Keep Me Logged In (local storage)"
-          (checkedEvent)="cacheCheckEvent($event)"
-        ></app-check>
+          (checkedChange)="cacheCheckEvent($event)"
+        ></rd-checkbox>
       </div>
     </ng-template>
   `,

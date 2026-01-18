@@ -1,7 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterOutlet } from '@angular/router';
-import { ToastComponent } from './_components/common/toast/toast.component';
+import { ToastComponent } from '@rd-ui';
 import { MainNavBarComponent } from './_components/main-nav-bar/main-nav-bar.component';
 
 import { ModalComponent } from './_components/common/modal/modal.component';

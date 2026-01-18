@@ -1,10 +1,10 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, effect, inject, input, signal } from '@angular/core';
+import { ToastService } from '@rd-ui';
 import { LucideAngularModule } from 'lucide-angular';
 import { take } from 'rxjs';
 import { AuthService } from '../../_services/auth/auth.service';
 import { JwtAuthProvider } from '../../_services/auth/providers/jwt-auth-provider.service';
-import { ToastService } from '../../_services/toast.service';
 import { AuthLinkService } from '../../_services/web-api/auth-link.service';
 import { SettingModalComponent } from '../common/setting-modal/setting-modal.component';
 

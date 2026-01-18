@@ -2,10 +2,10 @@ import { CommonModule } from '@angular/common';
 import { Component, inject, signal, viewChild } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
+import { SkeletonComponent } from '@rd-ui';
 import { switchMap, tap } from 'rxjs';
 import { UploadItemsComponent, UploadItemsStatus } from '../../_components/upload-items/upload-items.component';
 
-import { SkeletonComponent } from '../../_components/common/skeleton/skeleton';
 import { LocalFilesModalComponent } from '../../_components/local-file-modal/local-files-modal.component';
 import { JwtAuthProvider } from '../../_services/auth/providers/jwt-auth-provider.service';
 import { RouterHelperService } from '../../_services/route-helper';
@@ -18,7 +18,7 @@ import { LocalFile, UploadService } from '../../_services/web-api/upload.service
   imports: [CommonModule, FormsModule, UploadItemsComponent, LocalFilesModalComponent, SkeletonComponent],
   template: `
     @if (isLoading()) {
-      <lib-skeleton width="600px" height="388px"></lib-skeleton>
+      <rd-skeleton width="600px" height="388px"></rd-skeleton>
     } @else {
       <div class="upload-buttons">
         <app-upload-items

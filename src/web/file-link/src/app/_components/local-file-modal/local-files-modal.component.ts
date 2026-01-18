@@ -13,13 +13,11 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
+import { CheckboxComponent, SkeletonComponent, SpinnerComponent } from '@rd-ui';
 import { LucideAngularModule } from 'lucide-angular';
 import { catchError, debounceTime, Observable, of, switchMap, timer } from 'rxjs';
 import { FileIndexResponse, LocalFile, UploadService } from '../../_services/web-api/upload.service';
-import { CheckComponent } from '../common/check/check.component';
 import { ModalService } from '../common/modal/modal.service';
-import { SkeletonListComponent } from '../common/skeleton-list/skeleton-list.component';
-import { SpinnerComponent } from '../common/spinner/spinner.component';
 
 export interface TreeNode {
   name: string;
@@ -41,7 +39,7 @@ export interface SelectedLocalFile extends LocalFile {
 @Component({
   standalone: true,
   selector: 'app-local-files-modal',
-  imports: [CommonModule, FormsModule, CheckComponent, LucideAngularModule, SkeletonListComponent, SpinnerComponent],
+  imports: [CommonModule, FormsModule, CheckboxComponent, LucideAngularModule, SkeletonComponent, SpinnerComponent],
   template: `
     <ng-template #modalBody>
       <div>
@@ -69,38 +67,40 @@ export interface SelectedLocalFile extends LocalFile {
                         class="expand-icon"
                       ></lucide-icon>
                       <lucide-icon name="folder" [size]="28" class="folder-icon"></lucide-icon>
-                      <app-check
-                        [checked]="node.selected()"
+                      <rd-checkbox
+                        [ngModel]="node.selected()"
                         [label]="node.name"
-                        (checkedEvent)="onFolderCheck(node, $event)"
+                        (checkedChange)="onFolderCheck(node, $event)"
                         class="folder-check"
-                      ></app-check>
+                      ></rd-checkbox>
                     </div>
                   } @else {
                     <div class="file-row">
                       <div class="file-indent"></div>
                       <lucide-icon name="file" class="file-icon" [size]="24"></lucide-icon>
-                      <app-check
-                        [checked]="node.selected()"
+                      <rd-checkbox
+                        [ngModel]="node.selected()"
                         [label]="node.name"
-                        (checkedEvent)="node.selected.set($event)"
+                        (checkedChange)="node.selected.set($event)"
                         class="file-check"
-                      ></app-check>
+                      ></rd-checkbox>
                     </div>
                   }
                 </div>
               }
             }
           } @else {
-            <lib-skeleton-list [size]="10" itemHeight="41px" gap="1px"></lib-skeleton-list>
+            @for (i of [1,2,3,4,5,6,7,8,9,10]; track i) {
+                <rd-skeleton width="100%" height="41px" [style]="{'margin-bottom': '1px'}"></rd-skeleton>
+              }
           }
           @if (isIndexing()) {
-            <app-spinner>
+            <rd-spinner [fullscreen]="false" [overlay]="false">
               <div class="index-message">
                 <div>Files are being indexed</div>
                 <div class="small">(Will load when done)</div>
               </div>
-            </app-spinner>
+            </rd-spinner>
           }
         </div>
       </div>

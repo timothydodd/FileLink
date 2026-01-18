@@ -16,10 +16,10 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { Fancybox } from '@fancyapps/ui';
+import { SkeletonComponent } from '@rd-ui';
 import { LucideAngularModule } from 'lucide-angular';
 import { tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { SkeletonComponent } from '../../_components/common/skeleton/skeleton';
 import { LocalFilesModalComponent } from '../../_components/local-file-modal/local-files-modal.component';
 import { ShareLinkDisplayComponent } from '../../_components/share-link-display/share-link-display.component';
 import {
@@ -139,10 +139,10 @@ import { LocalFile, UploadItemResponse, UploadService } from '../../_services/we
       </ng-template>
     } @else {
       <div class="buttons">
-        <lib-skeleton width="165px" height="247px"></lib-skeleton>
-        <lib-skeleton width="165px" height="247px"></lib-skeleton>
-        <lib-skeleton width="165px" height="247px"></lib-skeleton>
-        <lib-skeleton width="165px" height="247px"></lib-skeleton>
+        <rd-skeleton width="165px" height="247px"></rd-skeleton>
+        <rd-skeleton width="165px" height="247px"></rd-skeleton>
+        <rd-skeleton width="165px" height="247px"></rd-skeleton>
+        <rd-skeleton width="165px" height="247px"></rd-skeleton>
       </div>
     }
   `,
