@@ -5,12 +5,11 @@ import {
   computed,
   effect,
   inject,
+  OnInit,
   signal,
-  TemplateRef,
-  viewChild,
 } from '@angular/core';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { ToastService } from '@rd-ui';
+import { ModalComponent, ModalLayoutComponent, ToastService } from '@rd-ui';
 import { LucideAngularModule } from 'lucide-angular';
 import { take } from 'rxjs';
 import { AuthService } from '../../../_services/auth/auth.service';
@@ -19,66 +18,68 @@ import { RouterHelperService } from '../../../_services/route-helper';
 import { UserPreferenceService } from '../../../_services/user-prefrences.service';
 import { AuthLinkService, LoginRequest } from '../../../_services/web-api/auth-link.service';
 import { UploadService } from '../../../_services/web-api/upload.service';
-import { ModalService } from '../modal/modal.service';
 
 @Component({
   standalone: true,
   selector: 'app-setting-modal',
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, LucideAngularModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, LucideAngularModule, ModalLayoutComponent],
   template: `
-    <ng-template #modalBody>
-      @if (loginUrl()) {
-        <!-- Display generated link -->
-        <div class="link-display">
-          <div class="link-box">
-            <span class="link-text">{{ loginUrl() }}</span>
-            <button class="copy-button" (click)="copyToClipboard()" title="Copy to clipboard">
-              <i class="fa fa-copy"></i> Copy
+    <rd-modal-layout [title]="'Settings'">
+      <div slot="body">
+        @if (loginUrl()) {
+          <!-- Display generated link -->
+          <div class="link-display">
+            <div class="link-box">
+              <span class="link-text">{{ loginUrl() }}</span>
+              <button class="copy-button" (click)="copyToClipboard()" title="Copy to clipboard">
+                <i class="fa fa-copy"></i> Copy
+              </button>
+            </div>
+            <p class="expiry-note">This link will expire on {{ this.expireDate() | date: 'medium' }}</p>
+          </div>
+
+          <!-- Link settings form -->
+          <div class="settings-form">
+            <div class="expiry-settings">
+              <label>Link expires in:</label>
+              <div class="input-group">
+                <input
+                  type="number"
+                  [ngModel]="expirationValue()"
+                  (ngModelChange)="expirationValue.set($event)"
+                  min="1"
+                  class="expiry-value"
+                />
+                <select [ngModel]="expirationType()" (ngModelChange)="expirationType.set($event)" class="expiry-type">
+                  <option *ngFor="let type of expiryTypes" [value]="type.value">
+                    {{ type.label }}
+                  </option>
+                </select>
+              </div>
+              @if (hasError()) {
+                <div class="error">Please enter a valid number greater than 0 hours</div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+      <div slot="footer">
+        @if (loginUrl(); as form) {
+          <div class="button-group">
+            <button type="button" class="btn delete-button" (click)="deleteLink()">Delete</button>
+            <button type="button" class="btn regenerate-button" [disabled]="hasError()" (click)="generateLink()">
+              Regenerate Link
             </button>
           </div>
-          <p class="expiry-note">This link will expire on {{ this.expireDate() | date: 'medium' }}</p>
-        </div>
-
-        <!-- Link settings form -->
-        <div class="settings-form">
-          <div class="expiry-settings">
-            <label>Link expires in:</label>
-            <div class="input-group">
-              <input
-                type="number"
-                [ngModel]="expirationValue()"
-                (ngModelChange)="expirationValue.set($event)"
-                min="1"
-                class="expiry-value"
-              />
-              <select [ngModel]="expirationType()" (ngModelChange)="expirationType.set($event)" class="expiry-type">
-                <option *ngFor="let type of expiryTypes" [value]="type.value">
-                  {{ type.label }}
-                </option>
-              </select>
-            </div>
-            @if (hasError()) {
-              <div class="error">Please enter a valid number greater than 0 hours</div>
-            }
-          </div>
-        </div>
-      }
-    </ng-template>
-    <ng-template #modalFooter>
-      @if (loginUrl(); as form) {
-        <div class="button-group">
-          <button type="button" class="btn delete-button" (click)="deleteLink()">Delete</button>
-          <button type="button" class="btn regenerate-button" [disabled]="hasError()" (click)="generateLink()">
-            Regenerate Link
-          </button>
-        </div>
-      }
-    </ng-template>
+        }
+      </div>
+    </rd-modal-layout>
   `,
   styleUrl: './setting-modal.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class SettingModalComponent {
+export class SettingModalComponent implements OnInit {
+  private modalComponent = inject(ModalComponent);
   toastr = inject(ToastService);
   authProvider = inject(JwtAuthProvider);
   uploadService = inject(UploadService);
@@ -103,9 +104,7 @@ export class SettingModalComponent {
     var v = this.expirationValue();
     return v < 1;
   });
-  modalService = inject(ModalService);
-  modalFooter = viewChild<TemplateRef<any>>('modalFooter');
-  modalBody = viewChild<TemplateRef<any>>('modalBody');
+
   constructor() {
     this.authService.getUserOnce().subscribe((x) => {
       this.userId.set(x?.appUserId);
@@ -124,6 +123,14 @@ export class SettingModalComponent {
         });
     });
   }
+
+  ngOnInit(): void {
+    const data = this.modalComponent.config?.data;
+    if (data?.groupId) {
+      this.groupId.set(data.groupId);
+    }
+  }
+
   loadUrl(z: LoginRequest, setType = false) {
     this.loginUrl.set(`${window.location.origin}/l/${z.code}`);
     var dtNow = new Date();
@@ -169,7 +176,7 @@ export class SettingModalComponent {
     this.uploadService.delete(this.groupId()!).subscribe(() => {
       this.toastr.success('Link deleted successfully');
       this.router.goHome();
-      this.modalService.close();
+      this.modalComponent.close();
     });
   }
 
@@ -182,10 +189,5 @@ export class SettingModalComponent {
       .catch((err) => {
         console.error('Could not copy text: ', err);
       });
-  }
-
-  show(groupId: string) {
-    this.groupId.set(groupId);
-    this.modalService.open('Settings', this.modalBody(), this.modalFooter());
   }
 }

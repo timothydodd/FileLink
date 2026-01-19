@@ -16,7 +16,7 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { Fancybox } from '@fancyapps/ui';
-import { SkeletonComponent } from '@rd-ui';
+import { ModalContainerService, SkeletonComponent } from '@rd-ui';
 import { LucideAngularModule } from 'lucide-angular';
 import { tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -44,7 +44,6 @@ import { LocalFile, UploadItemResponse, UploadService } from '../../_services/we
     ShareLinkDisplayComponent,
     LucideAngularModule,
     UploadItemsComponent,
-    LocalFilesModalComponent,
     SkeletonComponent,
   ],
   template: `
@@ -117,9 +116,6 @@ import { LocalFile, UploadItemResponse, UploadService } from '../../_services/we
           (statusChanged)="uploadItemsChanged($event)"
           [showDragArea]="false"
         ></app-upload-items>
-        @if (localFilesEnabled()) {
-          <app-local-files-modal #localFilesModal (attachFilesEvent)="attachItems($event)"></app-local-files-modal>
-        }
       }
 
       <ng-template #sharedLink>
@@ -130,7 +126,7 @@ import { LocalFile, UploadItemResponse, UploadService } from '../../_services/we
               <lucide-angular name="cloud-upload" title="Upload File" [size]="18"></lucide-angular>
             </button>
             @if (localFilesEnabled()) {
-              <button class="btn btn-icon" title="Attach Host File" (click)="localFiles()!.show()">
+              <button class="btn btn-icon" title="Attach Host File" (click)="openLocalFilesModal()">
                 <lucide-angular name="paperclip" [size]="18"></lucide-angular>
               </button>
             }
@@ -158,8 +154,8 @@ export class UploadViewPageComponent implements OnDestroy, AfterViewInit {
   uploadService = inject(UploadService);
   chunkService = inject(UploadChunkService);
   destroyRef = inject(DestroyRef);
+  modalContainerService = inject(ModalContainerService);
   uploads = viewChild<UploadItemsComponent>('uploads');
-  localFiles = viewChild<LocalFilesModalComponent>('localFilesModal');
   sharedLink = viewChild<TemplateRef<any>>('sharedLink');
   files = signal<UploadItemResponse[] | null>(null);
   ImageType = ImageType;
@@ -261,6 +257,15 @@ export class UploadViewPageComponent implements OnDestroy, AfterViewInit {
       return this.chunkService.create(file, this.groupId()!);
     });
   }
+  openLocalFilesModal() {
+    const modalRef = this.modalContainerService.openComponent(LocalFilesModalComponent);
+    modalRef.onClose.subscribe((items: LocalFile[] | undefined) => {
+      if (items && items.length > 0) {
+        this.attachItems(items);
+      }
+    });
+  }
+
   attachItems(items: LocalFile[]) {
     if (items.length === 0) return;
     this.uploadService.attachLocalFile(this.groupId()!, items).subscribe(() => {

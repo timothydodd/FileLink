@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, ElementRef, HostListener, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterModule } from '@angular/router';
+import { ModalContainerService } from '@rd-ui';
 import { LucideAngularModule } from 'lucide-angular';
 import { AuthService } from '../../_services/auth/auth.service';
 import { TokenUser } from '../../_services/auth/token-user';
@@ -11,7 +12,7 @@ import { GuestSettingModalComponent } from '../guest-setting-modal/guest-setting
 
 @Component({
   selector: 'app-main-menu',
-  imports: [LucideAngularModule, RouterModule, GuestSettingModalComponent, ChangePasswordModalComponent],
+  imports: [LucideAngularModule, RouterModule],
   template: `
     <button type="button" class="btn-icon" (click)="isOpen.set(!isOpen())">
       <lucide-angular name="square-menu"></lucide-angular>
@@ -19,21 +20,19 @@ import { GuestSettingModalComponent } from '../guest-setting-modal/guest-setting
     @if (isOpen()) {
       <div class="menu">
         @if (showGuestSettings()) {
-          <button dropdown-item (click)="guestModal.show()">Settings</button>
+          <button dropdown-item (click)="openGuestSettings()">Settings</button>
           <div class="dropdown-divider"></div>
         }
         @if (showLinks()) {
           <button dropdown-item (click)="router.goCreate()">Create Link</button>
           <button dropdown-item routerLink="links" routerLinkActive="active-link">Manage Links</button>
 
-          <button dropdown-item (click)="changePasswordModal.show()">Change Password</button>
+          <button dropdown-item (click)="openChangePassword()">Change Password</button>
           <div class="dropdown-divider"></div>
         }
         <button dropdown-item (click)="logOut()">Logout</button>
       </div>
     }
-    <app-guest-setting-modal #guestModal></app-guest-setting-modal>
-    <app-change-password-modal #changePasswordModal></app-change-password-modal>
   `,
   styleUrl: './main-menu.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -42,6 +41,7 @@ export class MainMenuComponent {
   elementRef = inject(ElementRef);
   authService = inject(AuthService);
   router = inject(RouterHelperService);
+  modalContainerService = inject(ModalContainerService);
   user = signal<TokenUser | null>(null);
   toolbarService = inject(ToolbarService);
 
@@ -97,6 +97,15 @@ export class MainMenuComponent {
   linksOpen() {
     this.router.goLinks();
   }
+
+  openGuestSettings() {
+    this.modalContainerService.openComponent(GuestSettingModalComponent);
+  }
+
+  openChangePassword() {
+    this.modalContainerService.openComponent(ChangePasswordModalComponent);
+  }
+
   logOut() {
     this.authService.logout().subscribe(() => {
       this.user.set(null);

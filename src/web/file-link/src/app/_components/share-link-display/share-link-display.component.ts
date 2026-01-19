@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, effect, inject, input, signal } from '@angular/core';
-import { ToastService } from '@rd-ui';
+import { ModalContainerService, ToastService } from '@rd-ui';
 import { LucideAngularModule } from 'lucide-angular';
 import { take } from 'rxjs';
 import { AuthService } from '../../_services/auth/auth.service';
@@ -11,7 +11,7 @@ import { SettingModalComponent } from '../common/setting-modal/setting-modal.com
 @Component({
   selector: 'app-share-link-display',
   standalone: true,
-  imports: [CommonModule, LucideAngularModule, SettingModalComponent],
+  imports: [CommonModule, LucideAngularModule],
   styleUrl: './share-link-display.component.scss',
   template: `
     @if (loginUrl()) {
@@ -24,13 +24,12 @@ import { SettingModalComponent } from '../common/setting-modal/setting-modal.com
             <lucide-angular name="copy" size="18"></lucide-angular>
           </button>
 
-          <button class="btn btn-icon" title="Settings" (click)="settings.show(groupId()!)">
+          <button class="btn btn-icon" title="Settings" (click)="openSettings()">
             <lucide-angular name="settings" size="18"></lucide-angular>
           </button>
           <ng-content></ng-content>
         </div>
       </div>
-      <app-setting-modal #settings> </app-setting-modal>
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -40,6 +39,7 @@ export class ShareLinkDisplayComponent {
   authLinkService = inject(AuthLinkService);
   authService = inject(AuthService);
   toastr = inject(ToastService);
+  modalContainerService = inject(ModalContainerService);
   groupId = input.required<string | null>();
 
   constructor() {
@@ -80,5 +80,10 @@ export class ShareLinkDisplayComponent {
         this.loginUrl.set(`${window.location.origin}/l/${z.code}`);
       });
   }
+
+  openSettings() {
+    this.modalContainerService.openComponent(SettingModalComponent, { data: { groupId: this.groupId() } });
+  }
+
   loginUrl = signal<string | null>(null);
 }

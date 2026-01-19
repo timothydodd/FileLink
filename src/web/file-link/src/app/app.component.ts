@@ -4,14 +4,13 @@ import { RouterOutlet } from '@angular/router';
 import { ToastComponent } from '@rd-ui';
 import { MainNavBarComponent } from './_components/main-nav-bar/main-nav-bar.component';
 
-import { ModalComponent } from './_components/common/modal/modal.component';
 import { AuthService } from './_services/auth/auth.service';
 import { TokenUser } from './_services/auth/token-user';
 import { SignalRService } from './_services/signalr.service';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, MainNavBarComponent, ToastComponent, ModalComponent],
+  imports: [RouterOutlet, MainNavBarComponent, ToastComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css',
 })

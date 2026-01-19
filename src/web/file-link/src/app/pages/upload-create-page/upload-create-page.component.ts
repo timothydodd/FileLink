@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, inject, signal, viewChild } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { SkeletonComponent } from '@rd-ui';
+import { ModalContainerService, SkeletonComponent } from '@rd-ui';
 import { switchMap, tap } from 'rxjs';
 import { UploadItemsComponent, UploadItemsStatus } from '../../_components/upload-items/upload-items.component';
 
@@ -15,7 +15,7 @@ import { LocalFile, UploadService } from '../../_services/web-api/upload.service
 @Component({
   selector: 'app-upload-create-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, UploadItemsComponent, LocalFilesModalComponent, SkeletonComponent],
+  imports: [CommonModule, FormsModule, UploadItemsComponent, SkeletonComponent],
   template: `
     @if (isLoading()) {
       <rd-skeleton width="600px" height="388px"></rd-skeleton>
@@ -26,23 +26,20 @@ import { LocalFile, UploadService } from '../../_services/web-api/upload.service
           (statusChanged)="uploadItemsChanged($event)"
           [showDragArea]="true"
           [allowCloudFiles]="localFilesEnabled()"
-          (attachCloudClicked)="localFilesModal()!.show()"
+          (attachCloudClicked)="openLocalFilesModal()"
         ></app-upload-items>
-        @if (localFilesEnabled()) {
-          <app-local-files-modal #localFilesModal (attachFilesEvent)="attachItems($event)"></app-local-files-modal>
-        }
       </div>
     }
   `,
   styleUrl: './upload-create-page.component.css',
 })
 export class UploadCreatePageComponent {
-  localFilesModal = viewChild<LocalFilesModalComponent>('localFilesModal');
   uploads = viewChild<UploadItemsComponent>('uploads');
   uploadService = inject(UploadService);
   chunkService = inject(UploadChunkService);
   router = inject(RouterHelperService);
   jwtAuthProvider = inject(JwtAuthProvider);
+  modalContainerService = inject(ModalContainerService);
   groupId: string | null = null;
   localFilesEnabled = signal(false);
   isLoading = signal(true);
@@ -74,6 +71,16 @@ export class UploadCreatePageComponent {
     // this.isBusy.set(status.uploading);
     // this.statusChanged.emit(status);
   }
+
+  openLocalFilesModal() {
+    const modalRef = this.modalContainerService.openComponent(LocalFilesModalComponent);
+    modalRef.onClose.subscribe((items: LocalFile[] | undefined) => {
+      if (items && items.length > 0) {
+        this.attachItems(items);
+      }
+    });
+  }
+
   attachItems(items: LocalFile[]) {
     if (items.length === 0) return;
     return this.uploadService

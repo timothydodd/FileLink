@@ -2,7 +2,6 @@ import { ApplicationConfig, importProvidersFrom, provideZoneChangeDetection } fr
 import { provideRouter } from '@angular/router';
 
 import { HTTP_INTERCEPTORS, provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
-import { provideAnimations } from '@angular/platform-browser/animations';
 import {
   ALargeSmall,
   AlertCircle,
@@ -111,7 +110,6 @@ export const appConfig: ApplicationConfig = {
         Folder,
       })
     ),
-    provideAnimations(),
     provideHttpClient(withInterceptorsFromDi()),
     {
       provide: HTTP_INTERCEPTORS,

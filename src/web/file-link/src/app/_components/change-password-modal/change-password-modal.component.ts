@@ -1,60 +1,56 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject, signal, TemplateRef, viewChild } from '@angular/core';
-import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { ToastService } from '@rd-ui';
-import { LucideAngularModule } from 'lucide-angular';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { ModalComponent, ModalLayoutComponent, ToastService } from '@rd-ui';
 import { AuthLinkService } from '../../_services/web-api/auth-link.service';
-import { ModalService } from '../common/modal/modal.service';
 
 @Component({
   standalone: true,
   selector: 'app-change-password-modal',
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, LucideAngularModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, ModalLayoutComponent],
   template: `
-    <ng-template #modalBody>
-      <div class="form-group">
-        <label for="currentPassword">Current Password</label>
-        <input
-          type="password"
-          id="currentPassword"
-          [ngModel]="currentPassword()"
-          (ngModelChange)="currentPassword.set($event)"
-        />
+    <rd-modal-layout [title]="'Change Password'">
+      <div slot="body">
+        <div class="form-group">
+          <label for="currentPassword">Current Password</label>
+          <input
+            type="password"
+            id="currentPassword"
+            [ngModel]="currentPassword()"
+            (ngModelChange)="currentPassword.set($event)"
+          />
+        </div>
+        <div class="form-group">
+          <label for="newPassword">New Password</label>
+          <input type="password" id="newPassword" [ngModel]="newPassword()" (ngModelChange)="newPassword.set($event)" />
+        </div>
+        <div class="form-group">
+          <label for="confirmPassword">Confirm New Password</label>
+          <input
+            type="password"
+            id="confirmPassword"
+            [ngModel]="confirmPassword()"
+            (ngModelChange)="confirmPassword.set($event)"
+          />
+        </div>
+        @if (hasError()) {
+          <div class="error">Passwords must match and be at least 8 characters.</div>
+        }
       </div>
-      <div class="form-group">
-        <label for="newPassword">New Password</label>
-        <input type="password" id="newPassword" [ngModel]="newPassword()" (ngModelChange)="newPassword.set($event)" />
+      <div slot="footer">
+        <div class="button-group">
+          <button class="btn btn-primary" (click)="changePassword()" [disabled]="hasError()">Change Password</button>
+        </div>
       </div>
-      <div class="form-group">
-        <label for="confirmPassword">Confirm New Password</label>
-        <input
-          type="password"
-          id="confirmPassword"
-          [ngModel]="confirmPassword()"
-          (ngModelChange)="confirmPassword.set($event)"
-        />
-      </div>
-      @if (hasError()) {
-        <div class="error">Passwords must match and be at least 8 characters.</div>
-      }
-    </ng-template>
-    <ng-template #modalFooter>
-      <div class="button-group">
-        <button class="btn btn-primary" (click)="changePassword()" [disabled]="hasError()">Change Password</button>
-      </div>
-    </ng-template>
+    </rd-modal-layout>
   `,
   styleUrl: './change-password-modal.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ChangePasswordModalComponent {
-  modalService = inject(ModalService);
+  private modalComponent = inject(ModalComponent);
   toastr = inject(ToastService);
   authService = inject(AuthLinkService);
-  formBuilder = inject(FormBuilder);
-
-  modalBody = viewChild<TemplateRef<any>>('modalBody');
-  modalFooter = viewChild<TemplateRef<any>>('modalFooter');
 
   currentPassword = signal<string>('');
   newPassword = signal<string>('');
@@ -71,18 +67,11 @@ export class ChangePasswordModalComponent {
     this.authService.changePassword(this.currentPassword(), this.newPassword()).subscribe({
       next: () => {
         this.toastr.success('Password changed successfully');
-        this.modalService.close();
+        this.modalComponent.close();
       },
       error: () => {
         this.toastr.error('Failed to change password');
       },
     });
-  }
-
-  show() {
-    this.currentPassword.set('');
-    this.newPassword.set('');
-    this.confirmPassword.set('');
-    this.modalService.open('Change Password', this.modalBody(), this.modalFooter());
   }
 }

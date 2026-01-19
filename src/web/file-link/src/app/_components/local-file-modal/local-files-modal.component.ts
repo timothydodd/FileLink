@@ -5,19 +5,16 @@ import {
   computed,
   EventEmitter,
   inject,
-  output,
+  OnInit,
   signal,
-  TemplateRef,
-  viewChild,
   WritableSignal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { CheckboxComponent, SkeletonComponent, SpinnerComponent } from '@rd-ui';
+import { CheckboxComponent, ModalComponent, ModalLayoutComponent, SkeletonComponent, SpinnerComponent } from '@rd-ui';
 import { LucideAngularModule } from 'lucide-angular';
 import { catchError, debounceTime, Observable, of, switchMap, timer } from 'rxjs';
 import { FileIndexResponse, LocalFile, UploadService } from '../../_services/web-api/upload.service';
-import { ModalService } from '../common/modal/modal.service';
 
 export interface TreeNode {
   name: string;
@@ -39,92 +36,99 @@ export interface SelectedLocalFile extends LocalFile {
 @Component({
   standalone: true,
   selector: 'app-local-files-modal',
-  imports: [CommonModule, FormsModule, CheckboxComponent, LucideAngularModule, SkeletonComponent, SpinnerComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    CheckboxComponent,
+    LucideAngularModule,
+    SkeletonComponent,
+    SpinnerComponent,
+    ModalLayoutComponent,
+  ],
   template: `
-    <ng-template #modalBody>
-      <div>
-        <input
-          type="text"
-          [ngModel]="searchText()"
-          (ngModelChange)="searchTextChange.emit($event)"
-          class="form-control"
-          placeholder="Search files and folders"
-        />
-      </div>
-      <div class="list-wrap">
-        <div class="list">
-          @if (treeNodes()) {
-            @if (filteredView().length === 0) {
-              <div class="text-center">No files found</div>
+    <rd-modal-layout [title]="'Host Files'">
+      <div slot="body">
+        <div>
+          <input
+            type="text"
+            [ngModel]="searchText()"
+            (ngModelChange)="searchTextChange.emit($event)"
+            class="form-control"
+            placeholder="Search files and folders"
+          />
+        </div>
+        <div class="list-wrap">
+          <div class="list">
+            @if (treeNodes()) {
+              @if (filteredView().length === 0) {
+                <div class="text-center">No files found</div>
+              } @else {
+                @for (node of filteredView(); track node.path) {
+                  <div class="tree-item" [style.padding-left.px]="node.level * 20 + 15">
+                    @if (node.isFolder) {
+                      <div class="folder-row" (click)="toggleFolder(node)">
+                        <lucide-icon
+                          [size]="24"
+                          [name]="node.expanded() ? 'chevron-down' : 'chevron-right'"
+                          class="expand-icon"
+                        ></lucide-icon>
+                        <lucide-icon name="folder" [size]="28" class="folder-icon"></lucide-icon>
+                        <rd-checkbox
+                          [ngModel]="node.selected()"
+                          [label]="node.name"
+                          (checkedChange)="onFolderCheck(node, $event)"
+                          class="folder-check"
+                        ></rd-checkbox>
+                      </div>
+                    } @else {
+                      <div class="file-row">
+                        <div class="file-indent"></div>
+                        <lucide-icon name="file" class="file-icon" [size]="24"></lucide-icon>
+                        <rd-checkbox
+                          [ngModel]="node.selected()"
+                          [label]="node.name"
+                          (checkedChange)="node.selected.set($event)"
+                          class="file-check"
+                        ></rd-checkbox>
+                      </div>
+                    }
+                  </div>
+                }
+              }
             } @else {
-              @for (node of filteredView(); track node.path) {
-                <div class="tree-item" [style.padding-left.px]="node.level * 20 + 15">
-                  @if (node.isFolder) {
-                    <div class="folder-row" (click)="toggleFolder(node)">
-                      <lucide-icon
-                        [size]="24"
-                        [name]="node.expanded() ? 'chevron-down' : 'chevron-right'"
-                        class="expand-icon"
-                      ></lucide-icon>
-                      <lucide-icon name="folder" [size]="28" class="folder-icon"></lucide-icon>
-                      <rd-checkbox
-                        [ngModel]="node.selected()"
-                        [label]="node.name"
-                        (checkedChange)="onFolderCheck(node, $event)"
-                        class="folder-check"
-                      ></rd-checkbox>
-                    </div>
-                  } @else {
-                    <div class="file-row">
-                      <div class="file-indent"></div>
-                      <lucide-icon name="file" class="file-icon" [size]="24"></lucide-icon>
-                      <rd-checkbox
-                        [ngModel]="node.selected()"
-                        [label]="node.name"
-                        (checkedChange)="node.selected.set($event)"
-                        class="file-check"
-                      ></rd-checkbox>
-                    </div>
-                  }
-                </div>
+              @for (i of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]; track i) {
+                <rd-skeleton width="100%" height="41px" [style]="{ 'margin-bottom': '1px' }"></rd-skeleton>
               }
             }
-          } @else {
-            @for (i of [1,2,3,4,5,6,7,8,9,10]; track i) {
-                <rd-skeleton width="100%" height="41px" [style]="{'margin-bottom': '1px'}"></rd-skeleton>
-              }
-          }
-          @if (isIndexing()) {
-            <rd-spinner [fullscreen]="false" [overlay]="false">
-              <div class="index-message">
-                <div>Files are being indexed</div>
-                <div class="small">(Will load when done)</div>
-              </div>
-            </rd-spinner>
-          }
+            @if (isIndexing()) {
+              <rd-spinner [fullscreen]="false" [overlay]="false">
+                <div class="index-message">
+                  <div>Files are being indexed</div>
+                  <div class="small">(Will load when done)</div>
+                </div>
+              </rd-spinner>
+            }
+          </div>
         </div>
       </div>
-    </ng-template>
-    <ng-template #modalFooter>
-      <div class="flex-row gap20">
-        <button class="btn btn-secondary" (click)="modalService.close()">Close</button>
-        <button class="btn btn-primary" (click)="attachFiles()">Attach ({{ selectedCount() }})</button>
+      <div slot="footer">
+        <div class="flex-row gap20">
+          <button class="btn btn-secondary" (click)="close()">Close</button>
+          <button class="btn btn-primary" (click)="attachFiles()">Attach ({{ selectedCount() }})</button>
+        </div>
       </div>
-    </ng-template>
+    </rd-modal-layout>
   `,
   styleUrl: './local-files-modal.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class LocalFilesModalComponent {
-  modalService = inject(ModalService);
+export class LocalFilesModalComponent implements OnInit {
+  private modalComponent = inject(ModalComponent);
   uploadService = inject(UploadService);
-  modalFooter = viewChild<TemplateRef<any>>('modalFooter');
-  modalBody = viewChild<TemplateRef<any>>('modalBody');
 
   localFiles = signal<SelectedLocalFile[] | null>(null);
   treeNodes = signal<TreeNode[] | null>(null);
   searchText = signal<string | null>(null);
-  attachFilesEvent = output<LocalFile[]>();
   isIndexing = signal(false);
 
   selectedCount = computed(() => {
@@ -154,6 +158,10 @@ export class LocalFilesModalComponent {
     this.searchTextChange.pipe(debounceTime(200), takeUntilDestroyed()).subscribe((x) => {
       this.searchText.set(x);
     });
+  }
+
+  ngOnInit(): void {
+    this.loadLocalFilesWithRxJSRetry();
   }
 
   private countSelectedFiles(nodes: TreeNode[]): number {
@@ -232,12 +240,13 @@ export class LocalFilesModalComponent {
     this.updateParentSelection(node.parent);
   }
 
+  close() {
+    this.modalComponent.close();
+  }
+
   attachFiles() {
     const selectedFiles = this.getSelectedFiles();
-    if (selectedFiles.length > 0) {
-      this.attachFilesEvent.emit(selectedFiles);
-    }
-    this.modalService.close();
+    this.modalComponent.modalContainerService.close(this.modalComponent.modalId!, selectedFiles);
   }
 
   private getSelectedFiles(): LocalFile[] {
@@ -374,8 +383,4 @@ export class LocalFilesModalComponent {
     });
   }
 
-  public show() {
-    this.modalService.open('Host Files', this.modalBody(), this.modalFooter(), 'xl', 'full-height');
-    this.loadLocalFilesWithRxJSRetry();
-  }
 }
