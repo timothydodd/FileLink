@@ -22,7 +22,7 @@ public class AppUserRepo
     {
         using var db = _dbFactory.CreateDbConnection();
         db.Open();
-        return await db.QuerySingleAsync<AppUser>("select * from AppUser where AppUserId = @AppUserId", new { AppUserId = appUserId });
+        return await db.QuerySingleOrDefaultAsync<AppUser>("select * from AppUser where AppUserId = @AppUserId", new { AppUserId = appUserId });
     }
     public async Task UpdatePassword(Guid appUserId, string password)
     {

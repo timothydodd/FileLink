@@ -46,13 +46,13 @@
 
   <ItemGroup>
 
-    <PackageReference Include="Microsoft.AspNetCore.JsonPatch" Version="10.0.2" />
+    <PackageReference Include="Microsoft.AspNetCore.JsonPatch" Version="10.0.3" />
     <PackageReference Include="AspNetCore.HealthChecks.MySql" Version="9.0.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.2" />
-    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="10.0.2" />
-    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="10.0.2" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.3" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="10.0.3" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="10.0.3" />
     <PackageReference Include="Microsoft.AspNetCore.SpaProxy">
-      <Version>10.0.2</Version>
+      <Version>10.0.3</Version>
     </PackageReference>
   </ItemGroup>
 
