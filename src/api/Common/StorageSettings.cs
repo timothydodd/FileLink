@@ -17,5 +17,7 @@ public class StorageSettings
         return Path.GetFullPath(combined); // This cleans up any mixed slashes
     }
     public List<String>? LocalSharedPaths { get; set; }
+    public long? StorageQuotaBytes { get; set; }
+    public int ExpiredLinkRetentionDays { get; set; } = 30;
 }
 

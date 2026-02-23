@@ -20,4 +20,10 @@ export class RouterHelperService {
   goLinks() {
     this.router.navigate(['/links']);
   }
+  goStorage() {
+    this.router.navigate(['/storage']);
+  }
+  goAuditLog() {
+    this.router.navigate(['/audit-log']);
+  }
 }

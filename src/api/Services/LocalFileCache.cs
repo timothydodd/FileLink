@@ -35,7 +35,10 @@ public class LocalFileCache
     {
         if (_storageSettings.LocalSharedPaths == null || id < 0 || id >= _storageSettings.LocalSharedPaths.Count)
             throw new ArgumentOutOfRangeException(nameof(id), "Invalid local path index.");
-        var fullPath = Path.Combine(_storageSettings.LocalSharedPaths[id], path);
+        var fullPath = Path.GetFullPath(Path.Combine(_storageSettings.LocalSharedPaths[id], path));
+        var basePath = Path.GetFullPath(_storageSettings.LocalSharedPaths[id]);
+        if (!fullPath.StartsWith(basePath, StringComparison.OrdinalIgnoreCase))
+            throw new UnauthorizedAccessException("Invalid file path.");
 
         return fullPath;
     }

@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System.Collections.Concurrent;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using FileLink.Repos;
 
@@ -10,7 +11,7 @@ public class MoviePlugin : IFilePlugin
     public readonly ILogger<MoviePlugin> _logger;
     public readonly UploadItemRepo _uploadItemRepo;
 
-    readonly Dictionary<string, string> _seriesPostersCache = new Dictionary<string, string>();
+    readonly ConcurrentDictionary<string, string> _seriesPostersCache = new();
     readonly string _webRootPath;
     readonly string _postersPath;
     public MoviePlugin(OmdbClient omdbClient, ILogger<MoviePlugin> logger, UploadItemRepo uploadItemRepo, IWebHostEnvironment env)
@@ -39,9 +40,9 @@ public class MoviePlugin : IFilePlugin
                 return;
 
             // Implement your series processing logic here
-            if (_seriesPostersCache.ContainsKey(seriesName))
+            if (_seriesPostersCache.TryGetValue(seriesName, out var cachedPoster))
             {
-                metadata.SeriesPoster = _seriesPostersCache[seriesName];
+                metadata.SeriesPoster = cachedPoster;
             }
             else
             {

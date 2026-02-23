@@ -1,10 +1,13 @@
-import { inject, Injectable } from '@angular/core';
+import { inject, Injectable, signal } from '@angular/core';
 import * as signalR from '@microsoft/signalr';
 import { LogLevel } from '@microsoft/signalr';
 import { firstValueFrom, from, map, Observable, of, Subject, tap } from 'rxjs';
 import { AuthService } from './auth/auth.service';
 import { ConfigService } from './config.service';
 import { GroupItemChanged } from './web-api/upload.service';
+
+export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
+
 @Injectable({
   providedIn: 'root',
 })
@@ -13,6 +16,9 @@ export class SignalRService {
   private authService = inject(AuthService);
   private hubConnection: signalR.HubConnection | undefined;
   public uploadItemChanged = new Subject<GroupItemChanged>();
+
+  public connectionStatus = signal<ConnectionStatus>('disconnected');
+  public connectionError = signal<string | null>(null);
 
   constructor() {}
 
@@ -23,12 +29,11 @@ export class SignalRService {
     if (this.hubConnection !== undefined && this.hubConnection?.state !== signalR.HubConnectionState.Disconnected) {
       return of(null);
     }
-    console.log('Starting SignalR connection...');
-    // Get the JWT token from your auth service
+    this.connectionStatus.set('connecting');
+    this.connectionError.set(null);
 
     var url = `${this.configService.apiUrl}/hub/items`;
     this.hubConnection = new signalR.HubConnectionBuilder()
-
       .withUrl(url, {
         accessTokenFactory: () => {
           return firstValueFrom(
@@ -49,16 +54,31 @@ export class SignalRService {
     this.hubConnection.on('UploadItemChanged', (result) => {
       this.uploadItemChanged.next(JSON.parse(result));
     });
-    // Set up connection events
+
     this.hubConnection.onclose((error) => {
       console.error('SignalR connection closed', error);
-      // Handle reconnection or notify the user
+      this.connectionStatus.set('error');
+      this.connectionError.set(error?.message ?? 'Real-time connection lost');
     });
-    // Start the connection
-    return from(
-      this.hubConnection!.start().catch((err) => {
-        console.error('Error starting SignalR connection:', err);
 
+    this.hubConnection.onreconnecting((error) => {
+      this.connectionStatus.set('connecting');
+      this.connectionError.set(error?.message ?? 'Reconnecting...');
+    });
+
+    this.hubConnection.onreconnected(() => {
+      this.connectionStatus.set('connected');
+      this.connectionError.set(null);
+    });
+
+    return from(
+      this.hubConnection!.start().then(() => {
+        this.connectionStatus.set('connected');
+        this.connectionError.set(null);
+      }).catch((err) => {
+        console.error('Error starting SignalR connection:', err);
+        this.connectionStatus.set('error');
+        this.connectionError.set(err?.message ?? 'Could not establish real-time connection');
         throw err;
       })
     );

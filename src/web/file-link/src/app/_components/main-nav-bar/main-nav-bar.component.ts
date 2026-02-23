@@ -18,7 +18,9 @@ import { MainMenuComponent } from '../main-menu/main-menu.component';
   template: `
     <app-logo></app-logo>
     @if (templateRef()) {
-      <ng-container class="toolbar" *ngTemplateOutlet="templateRef()"></ng-container>
+      <div class="toolbar">
+        <ng-container *ngTemplateOutlet="templateRef()"></ng-container>
+      </div>
     }
     @if (user() !== null) {
       <app-main-menu></app-main-menu>

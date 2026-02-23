@@ -1,0 +1,141 @@
+.audit-container {
+  padding: 20px 40px;
+
+  h2 {
+    margin-bottom: 24px;
+    color: var(--text-primary);
+  }
+}
+
+.loading-state,
+.empty-state {
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--text-muted);
+  background-color: var(--bg-page);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+
+  .empty-icon {
+    color: var(--text-muted);
+    opacity: 0.5;
+    margin-bottom: 8px;
+  }
+
+  h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+  }
+
+  p {
+    font-size: 14px;
+    margin: 0;
+    max-width: 360px;
+  }
+}
+
+.table-container {
+  overflow-x: auto;
+}
+
+.audit-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  th,
+  td {
+    padding: 10px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color-light);
+  }
+
+  th {
+    font-weight: 600;
+    color: var(--text-secondary);
+    background-color: var(--bg-page);
+    font-size: 13px;
+  }
+
+  tr:hover {
+    background-color: var(--bg-surface-muted);
+  }
+}
+
+.date-col {
+  white-space: nowrap;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.detail-col {
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ip-col {
+  font-family: monospace;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.action-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.action-download {
+  background-color: rgba(34, 148, 180, 0.12);
+  color: var(--secondary);
+}
+
+.action-login {
+  background-color: rgba(51, 193, 159, 0.12);
+  color: var(--primary);
+}
+
+.action-create {
+  background-color: rgba(51, 193, 159, 0.12);
+  color: var(--primary);
+}
+
+.action-delete {
+  background-color: var(--bg-error-light);
+  color: var(--danger);
+}
+
+.action-default {
+  background-color: var(--bg-surface-muted);
+  color: var(--text-secondary);
+}
+
+.load-more {
+  display: flex;
+  justify-content: center;
+  padding: 20px;
+}
+
+@media screen and (max-width: 768px) {
+  .audit-container {
+    padding: 10px 16px;
+  }
+  .hide-mobile {
+    display: none;
+  }
+  .audit-table {
+    th,
+    td {
+      padding: 8px 10px;
+    }
+  }
+}

@@ -5,7 +5,9 @@ using FileLink.Services;
 using LogMkApi.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
+using static FileLink.Constants;
 
 namespace FileLink.Controllers;
 [Route("api/auth")]
@@ -21,6 +23,7 @@ public class AuthController : Controller
     readonly PasswordService _passwordService;
     readonly LinkCodeRepo _linkCodeRepo;
     private readonly AuthSettings _authSettings;
+    private readonly AuditLogService _auditLogService;
     public AuthController(
         UserResolverService userResolverService,
         AuthLinkGenerator authLinkGenerator,
@@ -29,7 +32,8 @@ public class AuthController : Controller
         PasswordService passwordService,
         LinkCodeRepo linkCodeRepo,
         ILogger<AuthController> logger,
-        AuthSettings authSettings)
+        AuthSettings authSettings,
+        AuditLogService auditLogService)
     {
         _userResolverService = userResolverService;
         _authLinkGenerator = authLinkGenerator;
@@ -39,6 +43,7 @@ public class AuthController : Controller
         _linkCodeRepo = linkCodeRepo;
         _logger = logger;
         _authSettings = authSettings;
+        _auditLogService = auditLogService;
     }
     [AllowAnonymous]
     [HttpPost("refresh")]
@@ -88,6 +93,7 @@ public class AuthController : Controller
         return Ok();
     }
     [AllowAnonymous]
+    [EnableRateLimiting("login")]
     [HttpPost("login")]
     public async Task<IActionResult> Login(LoginRequest loginRequest)
     {
@@ -104,6 +110,19 @@ public class AuthController : Controller
         {
             _logger.LogError("Code expired: {Code}", code);
             return BadRequest("Code expired");
+        }
+
+        // Password verification
+        if (!string.IsNullOrEmpty(lc.PasswordHash))
+        {
+            if (string.IsNullOrEmpty(loginRequest.Password))
+            {
+                return Ok(new LoginPasswordRequiredResponse(true));
+            }
+            if (!_passwordService.VerifyLinkPassword(loginRequest.Password, lc.PasswordHash))
+            {
+                return Unauthorized("Invalid password");
+            }
         }
 
         lc.LastAccess = DateTime.UtcNow;
@@ -128,12 +147,12 @@ public class AuthController : Controller
         lc.Role, accessTokenExpiry);
         var refreshToken = await _jwtService.GenerateRefreshToken(lc.AppUserId);
 
+        _ = _auditLogService.LogAsync(AuditActions.LinkLogin, lc.AppUserId, lc.GroupId, detail: $"Code: {code}");
+
         return Ok(new LoginResponse(token, refreshToken, (long)accessTokenExpiry.TotalSeconds));
-
-
-
     }
     [AllowAnonymous]
+    [EnableRateLimiting("login")]
     [HttpPost("admin/login")]
     public async Task<IActionResult> AdminLoginRequest(AdminLoginRequest request)
     {
@@ -149,10 +168,9 @@ public class AuthController : Controller
         Constants.AuthRoleTypes.Owner, accessTokenExpiry);
         var refreshToken = await _jwtService.GenerateRefreshToken(user.AppUserId);
 
+        _ = _auditLogService.LogAsync(AuditActions.AdminLogin, user.AppUserId, detail: $"User: {user.UserName}");
+
         return Ok(new LoginResponse(token, refreshToken, (long)accessTokenExpiry.TotalSeconds));
-
-
-
     }
     [Authorize]
     [HttpGet("code")]
@@ -184,7 +202,62 @@ public class AuthController : Controller
             return BadRequest("Code not found.");
         }
 
-        return Ok(new ShareLinkResponse(code.Code, DateTime.SpecifyKind(code.Expiration, DateTimeKind.Utc)));
+        _ = _auditLogService.LogAsync(AuditActions.LinkCreated, _userResolverService.GetAppUserId(), groupId, detail: $"Code: {code.Code}");
+
+        return Ok(new ShareLinkResponse(code.Code, DateTime.SpecifyKind(code.Expiration, DateTimeKind.Utc), code.HasPassword));
+    }
+    [Authorize(Policy = Constants.AuthPolicy.RequireEditorRole)]
+    [HttpPost("group/{groupId}/link/password")]
+    public async Task<IActionResult> SetLinkPassword([FromRoute] Guid groupId, [FromBody] SetLinkPasswordRequest request)
+    {
+        var codes = await _linkCodeRepo.GetAll(groupId);
+        var readerCode = codes?.FirstOrDefault(c => c.Role == Constants.AuthRoleTypes.Reader);
+        if (readerCode == null)
+        {
+            return NotFound("No share link found for this group");
+        }
+
+        readerCode.PasswordHash = string.IsNullOrEmpty(request.Password)
+            ? null
+            : _passwordService.HashLinkPassword(request.Password);
+
+        await _linkCodeRepo.UpdateAsync(readerCode);
+        return Ok();
+    }
+
+    [Authorize(Policy = Constants.AuthPolicy.RequireEditorRole)]
+    [HttpPost("group/{groupId}/link/settings")]
+    public async Task<IActionResult> UpdateLinkSettings([FromRoute] Guid groupId, [FromBody] UpdateLinkSettingsRequest request)
+    {
+        var codes = await _linkCodeRepo.GetAll(groupId);
+        var readerCode = codes?.FirstOrDefault(c => c.Role == Constants.AuthRoleTypes.Reader);
+        if (readerCode == null)
+        {
+            return NotFound("No share link found for this group");
+        }
+
+        if (request.HoursValid.HasValue && request.HoursValid.Value > 0)
+        {
+            readerCode.ExpireDate = DateTime.UtcNow.Add(new TimeSpan(0, request.HoursValid.Value, 0, 0));
+        }
+
+        if (request.PasswordEnabled.HasValue)
+        {
+            if (request.PasswordEnabled.Value)
+            {
+                if (!string.IsNullOrEmpty(request.Password))
+                {
+                    readerCode.PasswordHash = _passwordService.HashLinkPassword(request.Password);
+                }
+            }
+            else
+            {
+                readerCode.PasswordHash = null;
+            }
+        }
+
+        await _linkCodeRepo.UpdateAsync(readerCode);
+        return Ok(new ShareLinkResponse(readerCode.Code, DateTime.SpecifyKind(readerCode.ExpireDate, DateTimeKind.Utc), !string.IsNullOrEmpty(readerCode.PasswordHash)));
     }
     [Authorize(Policy = Constants.AuthPolicy.RequireOwner)]
     [HttpGet("links")]
@@ -198,23 +271,47 @@ public class AuthController : Controller
         return Ok(links.Select(x =>
         {
             DateTime? lastAccess = x.LastAccess == null ? null : DateTime.SpecifyKind(x.LastAccess.Value, DateTimeKind.Utc);
-            return new LinkList(x.GroupId, x.Code, DateTime.SpecifyKind(x.ExpireDate, DateTimeKind.Utc), x.Uses, x.MaxUses, lastAccess, x.ItemCount);
+            return new LinkList(x.GroupId, x.Code, DateTime.SpecifyKind(x.ExpireDate, DateTimeKind.Utc), x.Uses, x.MaxUses, lastAccess, x.ItemCount, !string.IsNullOrEmpty(x.PasswordHash));
         }));
+    }
+
+    [Authorize(Policy = Constants.AuthPolicy.RequireOwner)]
+    [HttpPost("links/delete")]
+    public async Task<IActionResult> BulkDeleteLinks([FromBody] BulkLinkCodesRequest request)
+    {
+        if (request.Codes == null || request.Codes.Count == 0)
+            return BadRequest("No codes provided.");
+        await _linkCodeRepo.DeleteByCodes(request.Codes);
+        return NoContent();
+    }
+
+    [Authorize(Policy = Constants.AuthPolicy.RequireOwner)]
+    [HttpPost("links/expire")]
+    public async Task<IActionResult> BulkExpireLinks([FromBody] BulkLinkCodesRequest request)
+    {
+        if (request.Codes == null || request.Codes.Count == 0)
+            return BadRequest("No codes provided.");
+        await _linkCodeRepo.ExpireByCodes(request.Codes);
+        return NoContent();
     }
 
 }
 
 public record LinkList(Guid GroupId,
-    string Code, DateTime expirationDate, int? uses, int? maxUses, DateTime? lastAccess, int ItemCount);
+    string Code, DateTime expirationDate, int? uses, int? maxUses, DateTime? lastAccess, int ItemCount, bool HasPassword);
 public record GetCodeRequest(string Code);
-public record ShareLinkResponse(string Code, DateTime expirationDate);
-public record LoginRequest(string Code);
+public record ShareLinkResponse(string Code, DateTime expirationDate, bool HasPassword);
+public record LoginRequest(string Code, string? Password = null);
+public record LoginPasswordRequiredResponse(bool PasswordRequired);
+public record SetLinkPasswordRequest(string? Password);
 public record LoginResponse(string Token, string RefreshToken, long ExpiresIn);
 public class AdminLoginRequest
 {
     public required string UserName { get; set; }
     public required string Password { get; set; }
 }
+public record BulkLinkCodesRequest(List<string> Codes);
+public record UpdateLinkSettingsRequest(int? HoursValid, bool? PasswordEnabled, string? Password);
 public record ChangePasswordRequest
 {
     public required string OldPassword { get; set; }

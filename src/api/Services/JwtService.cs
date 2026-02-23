@@ -61,7 +61,7 @@ public class JwtService
     /// </summary>
     public string GetCodeHash(string code)
     {
-        using (var macleish1 = new HMACSHA1(Convert.FromBase64String(_authSettings.SecurityKey)))
+        using (var macleish1 = new HMACSHA256(Convert.FromBase64String(_authSettings.SecurityKey)))
         {
             var byteArray = Encoding.ASCII.GetBytes(code);
             var hashBytes = macleish1.ComputeHash(byteArray);

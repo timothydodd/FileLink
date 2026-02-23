@@ -22,7 +22,6 @@
 }
 
 .tree-item {
-  // border-bottom: 1px solid var(--border-color);
   display: flex;
   flex-direction: row;
   gap: 10px;
@@ -44,7 +43,7 @@ rd-checkbox {
   transition: background-color 0.2s ease;
 
   &:hover {
-    background-color: var(--hover-bg-color, rgba(0, 0, 0, 0.05));
+    background-color: rgba(0, 0, 0, 0.05);
   }
 }
 
@@ -54,20 +53,20 @@ rd-checkbox {
 
 .file-row {
   .file-indent {
-    width: 20px; // Same width as chevron icon to align files under folders
+    width: 20px;
     flex-shrink: 0;
   }
 }
 
 .expand-icon {
   flex-shrink: 0;
-  color: var(--text-secondary, #666);
+  color: var(--text-muted);
   transition: transform 0.2s ease;
 }
 
 .folder-icon {
   flex-shrink: 0;
-  color: var(--folder-color, #ffa500);
+  color: #ffa500;
 }
 
 .file-icon {
@@ -75,14 +74,13 @@ rd-checkbox {
   height: 16px;
   margin-right: 8px;
   flex-shrink: 0;
-  color: var(--file-color, #666);
+  color: var(--text-muted);
 }
 
 .folder-check,
 .file-check {
   flex: 1;
 
-  // Override default check component padding since we're handling it at tree-item level
   ::ng-deep {
     padding: 0 !important;
   }
@@ -94,7 +92,7 @@ rd-checkbox {
   left: 50%;
   transform: translate(-50%, -50%);
   font-size: 20px;
-  color: rgba(0, 0, 0, 0.685);
+  color: var(--text-muted);
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -102,7 +100,7 @@ rd-checkbox {
 
   .small {
     font-size: 12px;
-    color: rgba(0, 0, 0, 0.685);
+    color: var(--text-muted);
   }
 }
 
@@ -115,7 +113,7 @@ input {
   justify-content: center;
   align-items: center;
   min-height: 200px;
-  color: var(--text-secondary, #666);
+  color: var(--text-muted);
   font-style: italic;
 }
 
@@ -133,28 +131,5 @@ input {
     [style*='padding-left'] {
       padding-left: calc(var(--level, 0) * 15px + 10px) !important;
     }
-  }
-}
-
-// Dark mode support (if your app supports it)
-@media (prefers-color-scheme: dark) {
-  .folder-row,
-  .file-row {
-    &:hover {
-      background-color: rgba(255, 255, 255, 0.1);
-    }
-  }
-
-  .expand-icon,
-  .file-icon {
-    color: #ccc;
-  }
-
-  .folder-icon {
-    color: #ffb347;
-  }
-
-  .text-center {
-    color: #ccc;
   }
 }

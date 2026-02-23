@@ -6,7 +6,17 @@
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid var(--border-color);
-  background-color: white;
+  background-color: var(--bg-surface-raised);
+  position: relative;
+}
+
+.toolbar {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn-icon::after {
@@ -21,6 +31,10 @@
     padding: 10px 0;
     position: relative;
     gap: 10px;
+  }
+  .toolbar {
+    position: static;
+    transform: none;
   }
   :host app-main-menu {
     position: absolute;

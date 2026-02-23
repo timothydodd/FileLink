@@ -7,7 +7,7 @@
 }
 .box {
   font-size: 1.25rem;
-  background-color: rgba(50, 159, 112, 0.149);
+  background-color: var(--bg-drag-default);
   position: relative;
   padding: 100px 20px;
   outline: 2px dashed var(--primary);
@@ -18,7 +18,7 @@
 }
 .box.active {
   border-color: var(--secondary);
-  background-color: rgba(33, 150, 243, 0.1);
+  background-color: var(--bg-drag-active);
 }
 .box-file-input {
   width: 100%;
@@ -59,7 +59,7 @@
 }
 .box-button:hover {
   background-color: var(--primary);
-  color: white;
+  color: var(--text-on-primary);
 }
 .divider {
   margin-top: 10px;
@@ -86,10 +86,43 @@
   gap: 10px;
   padding: 20px;
   border-radius: 10px;
-  background-color: white;
+  background-color: var(--bg-surface-raised);
   border: 1px solid var(--border-color);
   box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
 }
+
+.item-failed {
+  border-color: var(--danger);
+}
+
+.item-failed .error-icon {
+  color: var(--danger);
+}
+
+.error-text {
+  font-size: 12px;
+  color: var(--danger);
+}
+
+.retry-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid var(--primary);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--primary);
+  cursor: pointer;
+}
+
+.retry-btn:hover {
+  background-color: var(--primary);
+  color: var(--text-on-primary);
+}
+
 .pulse {
   animation: grow-shrink 3s infinite ease-in-out;
 }

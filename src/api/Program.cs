@@ -4,6 +4,7 @@ using FileLink.Hubs;
 using FileLink.Plugin;
 using FileLink.Services;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.HttpOverrides;
 
 namespace FileLink;
 
@@ -40,6 +41,7 @@ public class Program
             .AddBackgroundServices()
             .AddCompressionAndCaching()
             .AddApplicationServices()
+            .AddRateLimiting(config, logger)
             .AddOmdbPlugin(config, logger);
 
 
@@ -92,12 +94,17 @@ public class Program
     }
     private static void ConfigureMiddleware(WebApplication app)
     {
+        app.UseForwardedHeaders(new ForwardedHeadersOptions
+        {
+            ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+        });
         app.UseCors("Origins");
         app.UseResponseCaching();
         app.UseResponseCompression();
         app.UseRouting();
+        app.UseAuthentication();
         app.UseAuthorization();
-        app.UseAuthorization();
+        app.UseRateLimiter();
         app.UseStaticFiles();
         app.UseDefaultFiles();
 

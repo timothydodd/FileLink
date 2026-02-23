@@ -20,12 +20,11 @@ import { SettingModalComponent } from '../common/setting-modal/setting-modal.com
           <a [href]="loginUrl()">{{ loginUrl() }} </a>
         </div>
         <div class="flex-row gap10" style="justify-self: center">
-          <button class="btn btn-icon" title="Copy" (click)="copyLink()">
-            <lucide-angular name="copy" size="18"></lucide-angular>
+          <button class="btn btn-icon" title="Copy link" aria-label="Copy link to clipboard" (click)="copyLink()">
+            <lucide-angular name="copy" [size]="16"></lucide-angular>
           </button>
-
-          <button class="btn btn-icon" title="Settings" (click)="openSettings()">
-            <lucide-angular name="settings" size="18"></lucide-angular>
+          <button class="btn btn-icon" title="Link settings" aria-label="Open link settings" (click)="openSettings()">
+            <lucide-angular name="settings" [size]="16"></lucide-angular>
           </button>
           <ng-content></ng-content>
         </div>
@@ -82,7 +81,7 @@ export class ShareLinkDisplayComponent {
   }
 
   openSettings() {
-    this.modalContainerService.openComponent(SettingModalComponent, { data: { groupId: this.groupId() } });
+    this.modalContainerService.openComponent(SettingModalComponent, { data: { groupId: this.groupId(), loginUrl: this.loginUrl() }, closeOnBackdropClick: false });
   }
 
   loginUrl = signal<string | null>(null);

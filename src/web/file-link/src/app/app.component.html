@@ -4,4 +4,7 @@
 <div class="route-container">
   <router-outlet />
 </div>
+@if (isLoggedIn()) {
+  <app-connection-status />
+}
 <rd-toast />

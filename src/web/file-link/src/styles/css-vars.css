@@ -10,14 +10,41 @@
   --control-background: #f0ece2;
   --font-color: #012811;
   --title-color: rgba(0, 0, 0, 0.5);
-  /* rgba($font-color, 0.5) */
-  --green-color: rgb(51, 193, 159);
   --dark-color: #24225b;
-  --hover-color: #86a7fc;
   --alt-background: rgb(234, 234, 234);
 
+  /* Surface / Background */
+  --bg-page: #f5f5f5;
+  --bg-surface: #ffffff;
+  --bg-surface-raised: #ffffff;
+  --bg-surface-muted: rgba(159, 159, 159, 0.1);
+  --bg-input: #ffffff;
+
+  /* Text */
+  --text-primary: #012811;
+  --text-secondary: #555;
+  --text-muted: #777;
+  --text-on-primary: #ffffff;
+
+  /* Borders */
+  --border-color-light: #e0e0e0;
+  --border-color-input: #ddd;
+
+  /* Shadows */
+  --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.1);
+  --shadow-card: 3px 3px 15px rgba(0, 0, 0, 0.15);
+
+  /* Focus */
+  --focus-ring: rgba(51, 193, 159, 0.35);
+
+  /* State backgrounds */
+  --bg-error-light: rgba(193, 51, 82, 0.08);
+  --bg-drag-active: rgba(34, 148, 180, 0.1);
+  --bg-drag-default: rgba(51, 193, 159, 0.08);
+
   /* rd-ui CSS variable mappings */
-  --rd-background: #ffffff;
+  --rd-background: var(--bg-surface);
   --rd-foreground: var(--font-color);
   --rd-primary: var(--primary);
   --rd-surface: var(--control-background);
@@ -27,7 +54,68 @@
   --rd-on-surface-muted: var(--title-color);
   --rd-border-color: var(--border-color);
   --rd-focus-ring: var(--primary);
-  --rd-dropdown-bg: #ffffff;
+  --rd-dropdown-bg: var(--bg-surface);
   --rd-border-radius: 8px;
-  --rd-success: var(--green-color);
+  --rd-success: var(--primary);
+}
+
+[data-theme="dark"] {
+  --primary: rgb(51, 193, 159);
+  --secondary: rgb(34, 148, 180);
+  --primary-light: rgb(64, 232, 193);
+  --danger: rgb(220, 80, 110);
+  --light: #2a2a3e;
+  --warning: #3d3d2a;
+  --alert-danger: var(--danger);
+  --border-color: #444466;
+  --control-background: #2a2a3e;
+  --font-color: #e8e8e8;
+  --title-color: rgba(255, 255, 255, 0.5);
+  --dark-color: #c8c8ff;
+  --alt-background: #2a2a3e;
+
+  /* Surface / Background */
+  --bg-page: #1a1a2e;
+  --bg-surface: #1e1e2e;
+  --bg-surface-raised: #252538;
+  --bg-surface-muted: rgba(255, 255, 255, 0.05);
+  --bg-input: #2a2a3e;
+
+  /* Text */
+  --text-primary: #e8e8e8;
+  --text-secondary: #b0b0b0;
+  --text-muted: #888;
+  --text-on-primary: #ffffff;
+
+  /* Borders */
+  --border-color-light: #3a3a50;
+  --border-color-input: #444466;
+
+  /* Shadows */
+  --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.4);
+  --shadow-card: 3px 3px 15px rgba(0, 0, 0, 0.4);
+
+  /* Focus */
+  --focus-ring: rgba(51, 193, 159, 0.45);
+
+  /* State backgrounds */
+  --bg-error-light: rgba(220, 80, 110, 0.15);
+  --bg-drag-active: rgba(34, 148, 180, 0.15);
+  --bg-drag-default: rgba(51, 193, 159, 0.1);
+
+  /* rd-ui CSS variable mappings */
+  --rd-background: var(--bg-surface);
+  --rd-foreground: var(--font-color);
+  --rd-primary: var(--primary);
+  --rd-surface: var(--control-background);
+  --rd-surface-variant: var(--alt-background);
+  --rd-surface-container: var(--light);
+  --rd-on-surface: var(--font-color);
+  --rd-on-surface-muted: var(--title-color);
+  --rd-border-color: var(--border-color);
+  --rd-focus-ring: var(--primary);
+  --rd-dropdown-bg: var(--bg-surface-raised);
+  --rd-border-radius: 8px;
+  --rd-success: var(--primary);
 }

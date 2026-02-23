@@ -1,37 +1,107 @@
 :host {
   display: block;
 }
+
+.menu-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.3);
+  z-index: 999;
+}
+
 .menu {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 2px;
   position: fixed;
   top: 70px;
   right: 10px;
-  width: 300px;
-  padding: 20px;
-  background-color: white;
-  border: 1px solid var(--border-color);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  width: 240px;
+  padding: 8px;
+  background-color: var(--bg-surface-raised);
+  border: 1px solid var(--border-color-light);
+  box-shadow: var(--shadow-md);
   z-index: 1000;
-  border-radius: 8px;
+  border-radius: 12px;
+
   button {
     width: 100%;
     text-align: left;
-    padding: 10px;
+    padding: 10px 12px;
     border-radius: 8px;
     background-color: transparent;
-    border: 1px solid var(--border-color);
+    border: none;
     cursor: pointer;
-    font-size: 16px;
-    color: #333;
+    font-size: 14px;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: background-color 0.15s;
+
+    lucide-angular {
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
+
     &:hover {
-      border: 1px solid var(--primary);
-      color: var(--primary);
+      background-color: var(--bg-surface-muted);
+
+      lucide-angular {
+        color: var(--primary);
+      }
     }
+
     &.active-link {
-      background-color: var(--primary);
-      color: white;
+      background-color: var(--bg-surface-muted);
+      color: var(--primary);
+      font-weight: 500;
+
+      lucide-angular {
+        color: var(--primary);
+      }
     }
+
+    &.logout-item {
+      color: var(--danger);
+
+      lucide-angular {
+        color: var(--danger);
+      }
+
+      &:hover {
+        background-color: var(--bg-error-light);
+      }
+    }
+  }
+}
+
+.menu-section-label {
+  padding: 8px 12px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+}
+
+.menu-divider {
+  height: 1px;
+  background-color: var(--border-color-light);
+  margin: 4px 8px;
+}
+
+@media screen and (max-width: 768px) {
+  .menu-backdrop {
+    display: block;
+  }
+}
+
+@media screen and (min-width: 769px) {
+  .menu-backdrop {
+    display: none;
   }
 }

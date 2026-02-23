@@ -1,5 +1,6 @@
 ﻿using System.IO.Compression;
 using System.Security.Cryptography;
+using System.Threading.RateLimiting;
 using FileLink.Common;
 using FileLink.Common.HealthCheck;
 using FileLink.Common.Jwt;
@@ -8,6 +9,7 @@ using FileLink.Repos;
 using FileLink.Services;
 using LogMkApi.Services;
 using LogSummaryService;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.ResponseCompression;
 using RoboDodd.OrmLite;
 
@@ -139,6 +141,9 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<RefreshTokenRepo>();
         services.AddSingleton<AppUserRepo>();
         services.AddSingleton<LinkCodeRepo>();
+        services.AddSingleton<StorageUsageRepo>();
+        services.AddSingleton<AuditLogRepo>();
+        services.AddScoped<AuditLogService>();
         services.AddSingleton<PasswordService>();
         services.AddSingleton<LocalFileCache>();
         services.AddSingleton<UploadService>();
@@ -154,6 +159,52 @@ public static class ServiceCollectionExtensions
         services.AddSignalR();
         return services;
 
+    }
+    public static IServiceCollection AddRateLimiting(this IServiceCollection services, IConfiguration config, ILogger logger)
+    {
+        var settings = config.GetSection("RateLimiting").Get<RateLimitSettings>() ?? new RateLimitSettings();
+        logger.LogInformation("Rate limiting: download={DownloadLimit}/{DownloadWindow}s, login={LoginLimit}/{LoginWindow}s",
+            settings.DownloadPermitLimit, settings.DownloadWindowSeconds,
+            settings.LoginPermitLimit, settings.LoginWindowSeconds);
+
+        services.AddRateLimiter(options =>
+        {
+            options.AddPolicy("download", context =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = settings.DownloadPermitLimit,
+                        Window = TimeSpan.FromSeconds(settings.DownloadWindowSeconds),
+                        QueueLimit = 0
+                    }));
+
+            options.AddPolicy("login", context =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = settings.LoginPermitLimit,
+                        Window = TimeSpan.FromSeconds(settings.LoginWindowSeconds),
+                        QueueLimit = 0
+                    }));
+
+            options.OnRejected = async (context, cancellationToken) =>
+            {
+                context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+                context.HttpContext.Response.ContentType = "application/json";
+
+                if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
+                {
+                    context.HttpContext.Response.Headers.RetryAfter = ((int)retryAfter.TotalSeconds).ToString();
+                }
+
+                await context.HttpContext.Response.WriteAsync(
+                    "{\"message\":\"Too many requests. Please try again later.\"}", cancellationToken);
+            };
+        });
+
+        return services;
     }
     public static IServiceCollection AddOmdbPlugin(this IServiceCollection services, IConfiguration config, ILogger logger)
     {

@@ -28,7 +28,9 @@ public class PreSignUrlService
         var dataToSign = $"{itemId}{expires}";
         var expectedSignature = GenerateSignature(dataToSign, _secretKey);
 
-        return signature == expectedSignature;
+        return CryptographicOperations.FixedTimeEquals(
+            Encoding.UTF8.GetBytes(signature),
+            Encoding.UTF8.GetBytes(expectedSignature));
     }
     public string GeneratePreSignedUrl(Guid itemId, TimeSpan duration)
     {

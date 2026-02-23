@@ -30,18 +30,21 @@ export class UploadChunkService {
   private readonly chunkSize = 50 * 1024 * 1024; // 50MB
   private readonly largeFileThreshold = 50 * 1024 * 1024; // 50MB
 
-  create(file: File, groupId: string): Observable<ChunkUploadProgress | UploadResult> {
+  create(file: File, groupId: string, relativePath?: string): Observable<ChunkUploadProgress | UploadResult> {
     if (file.size > this.largeFileThreshold) {
-      return this.uploadInChunks(file, groupId);
+      return this.uploadInChunks(file, groupId, relativePath);
     } else {
-      return this.uploadRegular(file, groupId);
+      return this.uploadRegular(file, groupId, relativePath);
     }
   }
 
-  private uploadRegular(file: File, groupId: string): Observable<ChunkUploadProgress | UploadResult> {
+  private uploadRegular(file: File, groupId: string, relativePath?: string): Observable<ChunkUploadProgress | UploadResult> {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('fileName', file.name);
+    if (relativePath) {
+      formData.append('relativePath', relativePath);
+    }
 
     return this.http
       .post(`${this.configService.apiUrl}/api/file/group/${groupId}/upload`, formData, {
@@ -77,14 +80,14 @@ export class UploadChunkService {
       );
   }
 
-  private uploadInChunks(file: File, groupId: string): Observable<ChunkUploadProgress | UploadResult> {
+  private uploadInChunks(file: File, groupId: string, relativePath?: string): Observable<ChunkUploadProgress | UploadResult> {
     const totalChunks = Math.ceil(file.size / this.chunkSize);
     const progressSubject = new Subject<ChunkUploadProgress | UploadResult>();
     const concurrentUploads = 3; // Set desired concurrency level
 
     let totalBytesUploaded = 0;
     let itemId: string = '';
-    this.uploadChunkStart(groupId, file, totalChunks)
+    this.uploadChunkStart(groupId, file, totalChunks, relativePath)
       .pipe(
         take(1),
         switchMap((result) => {
@@ -152,11 +155,12 @@ export class UploadChunkService {
 
     return progressSubject.asObservable();
   }
-  private uploadChunkStart(groupId: string, file: File, totalChunks: number): Observable<UploadChunkStartResponse> {
+  private uploadChunkStart(groupId: string, file: File, totalChunks: number, relativePath?: string): Observable<UploadChunkStartResponse> {
     var request: ChunkUploadStartRequest = {
       fileName: file.name,
       totalChunks: totalChunks,
       totalFileSize: file.size,
+      relativePath: relativePath,
     };
     return this.http.post<UploadChunkStartResponse>(
       `${this.configService.apiUrl}/api/file/group/${groupId}/upload-chunk/start`,
@@ -213,6 +217,7 @@ export interface ChunkUploadStartRequest {
   fileName: string;
   totalChunks: number;
   totalFileSize: number;
+  relativePath?: string;
 }
 export interface ChunkUploadResponse {
   itemId: string;

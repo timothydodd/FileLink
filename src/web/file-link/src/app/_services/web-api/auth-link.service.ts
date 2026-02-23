@@ -7,11 +7,15 @@ import { ConfigService } from '../config.service';
 export class AuthLinkService {
   private configService = inject(ConfigService);
   private http = inject(HttpClient);
-  login(code: string) {
+  login(code: string, password?: string) {
     const params = new InterceptorHttpParams({ noToken: true });
-    return this.http.post<LoginResponse>(
+    const body: any = { code };
+    if (password) {
+      body.password = password;
+    }
+    return this.http.post<LoginResponse | LoginPasswordRequiredResponse>(
       `${this.configService.apiUrl}/api/auth/login`,
-      { code: code } as LoginRequest,
+      body,
       {
         params,
       }
@@ -46,6 +50,18 @@ export class AuthLinkService {
   getLinks() {
     return this.http.get<LinkListItem[]>(`${this.configService.apiUrl}/api/auth/links`);
   }
+  setLinkPassword(groupId: string, password: string | null) {
+    return this.http.post(`${this.configService.apiUrl}/api/auth/group/${groupId}/link/password`, { password });
+  }
+  updateLinkSettings(groupId: string, settings: { hoursValid?: number; passwordEnabled?: boolean; password?: string | null }) {
+    return this.http.post<LoginRequest>(`${this.configService.apiUrl}/api/auth/group/${groupId}/link/settings`, settings);
+  }
+  bulkDeleteLinks(codes: string[]) {
+    return this.http.post(`${this.configService.apiUrl}/api/auth/links/delete`, { codes });
+  }
+  bulkExpireLinks(codes: string[]) {
+    return this.http.post(`${this.configService.apiUrl}/api/auth/links/expire`, { codes });
+  }
 }
 export interface GetCodeResponse {
   code: string;
@@ -53,6 +69,10 @@ export interface GetCodeResponse {
 export interface LoginRequest {
   code: string;
   expirationDate: Date | string;
+  hasPassword: boolean;
+}
+export interface LoginPasswordRequiredResponse {
+  passwordRequired: boolean;
 }
 export interface LoginResponse {
   token: string;
@@ -71,6 +91,7 @@ export interface LinkListItem {
   maxUses: number | null;
   lastAccess: Date | null;
   itemCount: number;
+  hasPassword: boolean;
 }
 
 export interface ChangePasswordRequest {

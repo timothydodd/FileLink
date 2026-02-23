@@ -41,7 +41,8 @@ public class AuthLinkGenerator
                                        string role,
                                        int length,
                                        TimeSpan expiration,
-                                       bool upperCaseOnly = false)
+                                       bool upperCaseOnly = false,
+                                       string? passwordHash = null)
     {
         DateTime expire = DateTime.UtcNow.Add(expiration);
         string code;
@@ -60,7 +61,8 @@ public class AuthLinkGenerator
             GroupId = groupId,
             Role = role,
             AppUserId = appUserId,
-            ExpireDate = expire
+            ExpireDate = expire,
+            PasswordHash = passwordHash
         };
 
         await _linkCodeRepo.Create(linkCode);
@@ -69,8 +71,15 @@ public class AuthLinkGenerator
 
     internal async Task<ShareCode> GetShareLink(Guid groupId, TimeSpan expiration, bool reroll = false)
     {
+        string? existingPasswordHash = null;
         if (reroll)
         {
+            var codes = await _linkCodeRepo.GetAll(groupId);
+            if (codes != null)
+            {
+                var existing = codes.FirstOrDefault(c => c.Role == Constants.AuthRoleTypes.Reader);
+                existingPasswordHash = existing?.PasswordHash;
+            }
             await _linkCodeRepo.DeleteShared(groupId);
         }
         else
@@ -78,20 +87,17 @@ public class AuthLinkGenerator
             var codes = await _linkCodeRepo.GetAll(groupId);
             if (codes != null)
             {
-
-
                 foreach (var code in codes)
                 {
-
                     if (code.Role == Constants.AuthRoleTypes.Reader)
                     {
-                        return new ShareCode(code.Code, code.GroupId, code.AppUserId, code.ExpireDate);
+                        return new ShareCode(code.Code, code.GroupId, code.AppUserId, code.ExpireDate, !string.IsNullOrEmpty(code.PasswordHash));
                     }
                 }
             }
         }
-        var c = await GenerateCode(groupId, Guid.NewGuid(), Constants.AuthRoleTypes.Reader, 32, expiration, true);
-        return new ShareCode(c.Code, c.GroupId, c.AppUserId, c.ExpireDate);
+        var c = await GenerateCode(groupId, Guid.NewGuid(), Constants.AuthRoleTypes.Reader, 32, expiration, true, existingPasswordHash);
+        return new ShareCode(c.Code, c.GroupId, c.AppUserId, c.ExpireDate, !string.IsNullOrEmpty(c.PasswordHash));
     }
 }
-public record ShareCode(string Code, Guid GroupId, Guid AppUserId, DateTime Expiration);
+public record ShareCode(string Code, Guid GroupId, Guid AppUserId, DateTime Expiration, bool HasPassword);

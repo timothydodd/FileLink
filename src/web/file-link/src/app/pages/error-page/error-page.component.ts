@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } 
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer } from '@angular/platform-browser';
 import { ActivatedRoute } from '@angular/router';
+import { LucideAngularModule } from 'lucide-angular';
 import { take } from 'rxjs';
 import { AuthService } from '../../_services/auth/auth.service';
 import { HealthCheckService } from '../../_services/health-check.service';
@@ -10,53 +11,51 @@ import { HealthCheckService } from '../../_services/health-check.service';
 @Component({
   selector: 'app-error-page',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, LucideAngularModule],
   template: `
     <div class="main-wrap">
       <div class="error-message l-window">
-        <div class="l-header">hi</div>
+        <div class="error-icon">
+          <lucide-angular name="alert-triangle" [size]="48"></lucide-angular>
+        </div>
 
         <ng-container>
           @switch (this.errorCode()) {
             @case (this.errorCodes.UserLogin) {
               <h3>Login Issue</h3>
-              <p>There was an issue logging into your document.</p>
+              <p>We couldn't sign you in. Please check your credentials and try again.</p>
             }
             @case (this.errorCodes.UserBlocked) {
-              <h3>Inactive Document</h3>
-              <p>Your document is currently inactive.</p>
+              <h3>Account Inactive</h3>
+              <p>Your account is currently inactive. Please contact the administrator for assistance.</p>
             }
             @case (this.errorCodes.Timeout) {
-              <h3>Connection Issue</h3>
-              <p>Please check your internet connection and try again.</p>
+              <h3>Connection Timed Out</h3>
+              <p>The server took too long to respond. Please check your internet connection and try again.</p>
             }
             @case (this.errorCodes.UserAccess) {
               <h3>Access Denied</h3>
-              <p>Your document doesn't have the proper permissions to view this site.</p>
+              <p>You don't have permission to view this page. Please request access from the link owner.</p>
             }
             @default {
-              <h3>Unknown Issue</h3>
-              <p>An Unknown error has occured. Please try again.</p>
+              <h3>Something Went Wrong</h3>
+              <p>An unexpected error occurred. Please try again or contact support if the issue persists.</p>
             }
           }
         </ng-container>
         @if (showHealthCheck) {
           <div class="status-box">
             <h4>Connection Status</h4>
-            <div class="split" style>
-              <div>ViewFi App Servers</div>
+            <div class="split">
+              <div>FileLink Servers</div>
               @if (this.healthData()) {
                 @if (isHealthy()) {
-                  <i class="fas fa-check-circle"></i>
+                  <lucide-angular name="check-circle" [size]="20" class="status-healthy"></lucide-angular>
+                } @else {
+                  <lucide-angular name="x-circle" [size]="20" class="status-unhealthy"></lucide-angular>
                 }
-                @if (!isHealthy) {
-                  <i class="fas fa-times-hexagon"></i>
-                }
-              }
-              @if (!this.healthData) {
-                <i>
-                  <div class="spinner-loader"></div>
-                </i>
+              } @else {
+                <div class="spinner-loader"></div>
               }
             </div>
           </div>

@@ -2,22 +2,24 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterOutlet } from '@angular/router';
 import { ToastComponent } from '@rd-ui';
+import { ConnectionStatusComponent } from './_components/connection-status/connection-status.component';
 import { MainNavBarComponent } from './_components/main-nav-bar/main-nav-bar.component';
 
 import { AuthService } from './_services/auth/auth.service';
 import { TokenUser } from './_services/auth/token-user';
 import { SignalRService } from './_services/signalr.service';
+import { ThemeService } from './_services/theme.service';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, MainNavBarComponent, ToastComponent],
+  imports: [RouterOutlet, MainNavBarComponent, ToastComponent, ConnectionStatusComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css',
 })
 export class AppComponent {
   title = 'file-link';
   authService = inject(AuthService);
-
+  themeService = inject(ThemeService);
   srService = inject(SignalRService);
   user = signal<TokenUser | null>(null);
   isLoggedIn = computed(() => {

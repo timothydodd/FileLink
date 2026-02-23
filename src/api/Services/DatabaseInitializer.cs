@@ -18,11 +18,12 @@ public class DatabaseInitializer
     {
         using var db = _dbFactory.CreateDbConnection();
         db.Open();
-        db.CreateTableIfNotExists<UploadItem>();
-        db.CreateTableIfNotExists<UploadGroup>();
-        db.CreateTableIfNotExists<LinkCode>();
-        db.CreateTableIfNotExists<RefreshToken>();
-        if (db.CreateTableIfNotExists<AppUser>())
+        db.CreateTableIfNotExists<UploadItem>(migrateSchema: true);
+        db.CreateTableIfNotExists<UploadGroup>(migrateSchema: true);
+        db.CreateTableIfNotExists<LinkCode>(migrateSchema: true);
+        db.CreateTableIfNotExists<RefreshToken>(migrateSchema: true);
+        db.CreateTableIfNotExists<AuditLog>(migrateSchema: true);
+        if (db.CreateTableIfNotExists<AppUser>(migrateSchema: true))
         {
             var user = new AppUser
             {

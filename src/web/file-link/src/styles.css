@@ -16,7 +16,7 @@ body {
   font-style: normal;
   overflow: hidden;
   color: var(--font-color);
-  background-color: rgba(159, 159, 159, 0.1);
+  background-color: var(--bg-page);
   overflow: auto;
   font-size: 1rem;
   line-height: 1.5;
@@ -79,6 +79,8 @@ input {
   padding: 10px;
   border-radius: 5px;
   border: 1px solid var(--border-color);
+  background-color: var(--bg-input);
+  color: var(--font-color);
   &:focus {
     outline: none;
     border-color: var(--primary);
@@ -87,4 +89,56 @@ input {
 lucide-icon,
 lucide-angular {
   display: contents;
+}
+
+/* Fancybox preview styles */
+.audio-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 40px;
+  min-width: 400px;
+}
+.audio-preview .audio-title {
+  font-size: 16px;
+  font-weight: 500;
+  color: #fff;
+  text-align: center;
+  word-break: break-word;
+}
+.audio-preview audio {
+  width: 100%;
+  max-width: 500px;
+}
+.text-preview {
+  background: #1e1e1e;
+  border-radius: 8px;
+  overflow: hidden;
+  max-width: 80vw;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+}
+.text-preview .text-header {
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #ccc;
+  background: #2d2d2d;
+  border-bottom: 1px solid #444;
+}
+.text-preview pre {
+  margin: 0;
+  padding: 16px;
+  overflow: auto;
+  max-height: 70vh;
+  flex: 1;
+}
+.text-preview code {
+  font-family: "Consolas", "Monaco", "Courier New", monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #d4d4d4;
+  white-space: pre;
 }

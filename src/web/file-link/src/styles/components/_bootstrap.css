@@ -1,8 +1,9 @@
 .dropdown-item.active-link {
-  background-color: var(--primary);
-  color: white;
+  background-color: transparent;
+  color: var(--primary);
+  border-left: 3px solid var(--primary);
 }
 .dropdown-item:hover {
-  background-color: var(--secondary);
-  color: white;
+  background-color: rgba(34, 148, 180, 0.08);
+  color: var(--secondary);
 }

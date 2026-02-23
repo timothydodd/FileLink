@@ -21,72 +21,65 @@ button.btn-no-border {
     outline: none;
 }
 
+:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
 
 .btn-tool,
 .btn-primary,
-.btn-super,
 .btn-secondary {
     box-sizing: border-box;
     position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--font-color);
     padding: 5px 30px;
-    background-color: var(--button-back);
-    border: 1px solid var(--border-color);
     border-radius: 5px;
     height: 49px;
 }
 
-.btn-tool:not(:disabled):not(.disabled):hover,
-.btn-primary:not(:disabled):not(.disabled):hover,
-.btn-super:not(:disabled):not(.disabled):hover,
+.btn-primary {
+    background-color: transparent;
+    color: var(--primary);
+    border: 1px solid var(--primary);
+}
+
+.btn-primary:not(:disabled):not(.disabled):hover {
+    background-color: var(--primary);
+    color: var(--text-on-primary);
+}
+
+.btn-secondary {
+    background-color: transparent;
+    color: var(--secondary);
+    border: 1px solid var(--secondary);
+}
+
 .btn-secondary:not(:disabled):not(.disabled):hover {
-    background: white;
-    border-color: var(--primary);
-    color: var(--font-color)
-}
-
-
-.btn-tool:focus,
-.btn-primary:focus,
-.btn-super:focus,
-.btn-secondary:focus {
-    outline: 0px;
-    box-shadow: 0 0 0 0.2rem rgba(134, 167, 252, 0.5);
-    /* Replace with accurate RGBA */
-}
-.btn.btn-primary {
-    color: white;
-    background-color: var(--primary);
-}
-.btn-tool:disabled,
-.btn-tool.disabled,
-.btn-primary:disabled,
-.btn-primary.disabled,
-.btn-super:disabled,
-.btn-super.disabled,
-.btn-secondary:disabled,
-.btn-secondary.disabled {
-    opacity: 0.2;
-    color: gray;
-    background-color: white;
-    border-color: gray;
-}
-
-.btn-tool.active:not(:disabled):not(.disabled),
-.btn-primary.active:not(:disabled):not(.disabled),
-.btn-super.active:not(:disabled):not(.disabled),
-.btn-secondary.active:not(:disabled):not(.disabled) {
-    background-color: var(--primary);
-    color: color;
-    /* Consider specifying a real color */
-}
-
-.btn-super {
     background-color: var(--secondary);
-    color: white;
+    color: var(--text-on-primary);
+}
+
+.btn-tool {
+    background-color: transparent;
+    color: var(--font-color);
+    border: 1px solid var(--border-color);
+}
+
+.btn-tool:not(:disabled):not(.disabled):hover {
+    background-color: var(--bg-surface);
+    border-color: var(--primary);
+    color: var(--font-color);
+}
+
+.btn-tool:focus-visible,
+.btn-primary:focus-visible,
+.btn-secondary:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 0.2rem var(--focus-ring);
 }
 
 .btn-danger {
@@ -95,17 +88,41 @@ button.btn-no-border {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
+    background-color: transparent;
+    color: var(--danger);
+    border: 1px solid var(--danger);
+}
+
+.btn-danger:not(:disabled):not(.disabled):hover {
+    background-color: var(--danger);
+    color: var(--text-on-primary);
 }
 
 .btn-danger:disabled,
 .btn-danger.disabled {
-    color: white;
+    opacity: 0.2;
+    color: var(--text-muted);
+    background-color: var(--bg-surface);
+    border-color: var(--text-muted);
 }
 
-.btn-secondary {
-    background-color: var(--font-title);
-    /* Note: probably meant var(--title-color) */
+.btn-tool:disabled,
+.btn-tool.disabled,
+.btn-primary:disabled,
+.btn-primary.disabled,
+.btn-secondary:disabled,
+.btn-secondary.disabled {
+    opacity: 0.2;
+    color: var(--text-muted);
+    background-color: var(--bg-surface);
+    border-color: var(--text-muted);
+}
+
+.btn-tool.active:not(:disabled):not(.disabled),
+.btn-primary.active:not(:disabled):not(.disabled),
+.btn-secondary.active:not(:disabled):not(.disabled) {
+    background-color: var(--primary);
+    color: var(--text-on-primary);
 }
 
 .round-btn {
@@ -125,7 +142,7 @@ button.btn-no-border {
 }
 
 .btn-group-toggle .btn-primary.btn {
-    background-color: white;
+    background-color: var(--bg-surface);
     color: var(--primary);
 }
 
@@ -150,7 +167,7 @@ button.btn-no-border {
 }
 
 .btn.spinner {
-    color: white;
+    color: var(--text-on-primary);
     background-color: var(--primary);
 }
 
@@ -166,7 +183,7 @@ button.btn-no-border {
     margin-top: -10px;
     margin-left: -10px;
     border-radius: 50%;
-    border: 2px solid #ffffff;
+    border: 2px solid var(--text-on-primary);
     border-top-color: transparent;
     animation: btn-spinner 0.8s linear infinite;
 }
@@ -176,7 +193,7 @@ button.btn-no-border {
 .btn:active,
 .btn.active,
 .btn.show {
-    color: white;
+    color: var(--text-on-primary);
     background-color: var(--primary);
     border-color: var(--primary);
 }
@@ -215,22 +232,51 @@ button.btn-no-border {
     justify-content: center;
     align-items: center;
 
-    background-color: white;
-    color: var(--font-color);
-    /* border: 2px solid var(--font-color); */
+    background-color: var(--bg-surface);
+    color: var(--primary);
     border-radius: 50%;
     outline: none;
-    border: none;
-    color: var(--primary);
+    border: 1px solid var(--border-color);
     padding: 0px;
+    min-width: 36px;
+    min-height: 36px;
 }
 
 .btn-icon:hover,
 .btn.btn-icon:hover {
-    border-color: var(--hover-color);
     color: var(--secondary);
-    border: none;
+    border-color: var(--primary);
     background-color: unset;
+}
+
+.btn-icon-circle {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 36px;
+    height: 36px;
+    color: var(--primary);
+    background-color: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: 50%;
+    cursor: pointer;
+    text-decoration: none;
+    transition: border-color 0.15s, color 0.15s;
+}
+
+.btn-icon-circle:hover {
+    border-color: var(--primary);
+    color: var(--secondary);
+}
+
+.btn-spinner-sm {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid currentColor;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: btn-spinner 0.8s linear infinite;
 }
 
 .btn-error {
@@ -240,6 +286,6 @@ button.btn-no-border {
     align-items: center;
     justify-content: center;
     border-color: var(--danger);
-    background-color: white;
+    background-color: var(--bg-surface);
     color: var(--danger);
 }

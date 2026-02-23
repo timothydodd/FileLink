@@ -3,7 +3,9 @@
     "allow": [
       "Bash(npm update:*)",
       "Bash(npm run lint:*)",
-      "Bash(dotnet build:*)"
+      "Bash(dotnet build:*)",
+      "Bash(find:*)",
+      "WebFetch(domain:angular.dev)"
     ],
     "deny": []
   }

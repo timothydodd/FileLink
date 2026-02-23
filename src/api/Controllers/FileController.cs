@@ -1,10 +1,15 @@
-﻿using System.Diagnostics;
+﻿using System.Collections.Concurrent;
+using System.Diagnostics;
+using System.IO.Compression;
 using System.Text.Json;
+using FileLink.Common;
 using FileLink.Plugin;
 using FileLink.Repos;
 using FileLink.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using static FileLink.Constants;
 
 namespace FileLink.Controllers;
 [Authorize]
@@ -24,6 +29,7 @@ public class FileController : ControllerBase
     private readonly PreSignUrlService _preSignUrlService;
 
     private readonly LocalFileCache _localFileCache;
+    private readonly AuditLogService _auditLogService;
 
 
     public FileController(ILogger<FileController> logger,
@@ -33,7 +39,8 @@ public class FileController : ControllerBase
         BackgroundTaskQueue backgroundTaskQueue,
         PreSignUrlService preSignUrlService,
         LocalFileCache localFileCache,
-        UploadService uploadService)
+        UploadService uploadService,
+        AuditLogService auditLogService)
     {
         _logger = logger;
         _uploadGroupRepo = uploadGroupRepo;
@@ -43,6 +50,30 @@ public class FileController : ControllerBase
         _preSignUrlService = preSignUrlService;
         _localFileCache = localFileCache;
         _uploadService = uploadService;
+        _auditLogService = auditLogService;
+    }
+
+    [HttpGet("storage/usage")]
+    [Authorize(Policy = Constants.AuthPolicy.RequireOwner)]
+    public async Task<StorageUsageResponse> GetStorageUsage(
+        [FromServices] StorageUsageRepo storageUsageRepo,
+        [FromServices] StorageSettings storageSettings)
+    {
+        var summary = await storageUsageRepo.GetSummary();
+        return new StorageUsageResponse
+        {
+            TotalItems = summary.TotalItems,
+            TotalSize = summary.TotalSize,
+            GroupCount = summary.GroupCount,
+            QuotaBytes = storageSettings.StorageQuotaBytes,
+            Groups = summary.Groups.Select(g => new GroupStorageUsageResponse
+            {
+                GroupId = g.GroupId,
+                ItemCount = g.ItemCount,
+                TotalSize = g.TotalSize,
+                LastUpload = g.LastUpload
+            }).ToList()
+        };
     }
 
     [HttpGet("local/info")]
@@ -69,6 +100,7 @@ public class FileController : ControllerBase
                 return BadRequest("Upload a file.");
             }
             var result = await _uploadService.UploadFile(groupId, request);
+            _ = _auditLogService.LogAsync(AuditActions.FileUploaded, groupId: groupId, detail: request.FileName ?? request.File.FileName);
             return Ok(result);
         }
         catch (UploadBadRequestException ex)
@@ -83,13 +115,14 @@ public class FileController : ControllerBase
         }
     }
     [HttpPost("group/{groupId}/upload-chunk/start")]
+    [Authorize(Policy = Constants.AuthPolicy.RequireEditorRole)]
     public IActionResult StartUpload(Guid groupId, [FromBody] ChunkUploadStartRequest request)
     {
         if (request == null || request.TotalFileSize <= 0)
         {
             return BadRequest("No chunk data provided");
         }
-        var r = _uploadService.StartUpload(groupId, request.FileName, request.TotalFileSize, request.TotalChunks);
+        var r = _uploadService.StartUpload(groupId, request.FileName, request.TotalFileSize, request.TotalChunks, request.RelativePath);
         return Ok(r);
     }
 
@@ -201,6 +234,7 @@ public class FileController : ControllerBase
             GroupId = groupId
         };
         await _uploadGroupRepo.Create(uploadGroup);
+        _ = _auditLogService.LogAsync(AuditActions.GroupCreated, appUserId, groupId);
 
         return new CreateGroupResponse(groupId);
     }
@@ -209,11 +243,13 @@ public class FileController : ControllerBase
     public async Task DeleteLink(Guid groupId)
     {
         await _uploadGroupRepo.Delete(groupId);
+        _ = _auditLogService.LogAsync(AuditActions.GroupDeleted, _userResolverService.GetAppUserId(), groupId);
     }
 
     [AllowAnonymous]
+    [EnableRateLimiting("download")]
     [HttpGet("{itemId}")]
-    public async Task<IActionResult> Download(Guid itemId, [FromQuery] int expires, [FromQuery] string signature)
+    public async Task<IActionResult> Download(Guid itemId, [FromQuery] int expires, [FromQuery] string signature, [FromQuery] bool view = false)
     {
 
         if (_preSignUrlService.ValidatePreSignedUrl(itemId, expires, signature))
@@ -230,31 +266,27 @@ public class FileController : ControllerBase
             {
                 return NotFound("File not found.");
             }
+            // Fire-and-forget download count increment
+            _ = Task.Run(async () =>
+            {
+                try
+                { await _uploadItemRepo.IncrementDownloadCount(itemId); }
+                catch (Exception ex) { _logger.LogError(ex, "Failed to increment download count for {ItemId}", itemId); }
+            });
+            _ = _auditLogService.LogAsync(AuditActions.FileDownload, itemId: itemId, detail: item.FileName);
+
             var stream = System.IO.File.OpenRead(item.PhysicalPath);
             var fileName = item.FileName;
 
             // Get content type by file extension
             var extension = Path.GetExtension(fileName).ToLowerInvariant();
 
+            var contentType = GetContentType(extension);
 
-            var contentType = extension switch
+            if (view && IsPreviewable(extension))
             {
-                ".txt" => "text/plain",
-                ".pdf" => "application/pdf",
-                ".jpg" => "image/jpeg",
-                ".jpeg" => "image/jpeg",
-                ".png" => "image/png",
-                ".gif" => "image/gif",
-                ".doc" => "application/msword",
-                ".docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                ".xls" => "application/vnd.ms-excel",
-                ".xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                ".zip" => "application/zip",
-                ".rar" => "application/x-rar-compressed",
-                ".mp4" => "video/mp4",
-                ".mp3" => "audio/mpeg",
-                _ => "application/octet-stream" // Default content type
-            };
+                return new FileStreamResult(stream, contentType);
+            }
 
             return new FileStreamResult(stream, contentType)
             {
@@ -268,6 +300,152 @@ public class FileController : ControllerBase
         }
 
     }
+
+    private static string GetContentType(string extension) => extension switch
+    {
+        ".txt" => "text/plain",
+        ".csv" => "text/csv",
+        ".json" => "application/json",
+        ".xml" => "text/xml",
+        ".html" or ".htm" => "text/html",
+        ".css" => "text/css",
+        ".js" => "application/javascript",
+        ".ts" => "text/plain",
+        ".cs" => "text/plain",
+        ".py" => "text/plain",
+        ".java" => "text/plain",
+        ".c" or ".cpp" or ".h" => "text/plain",
+        ".rb" => "text/plain",
+        ".go" => "text/plain",
+        ".rs" => "text/plain",
+        ".sh" or ".bash" => "text/plain",
+        ".yaml" or ".yml" => "text/plain",
+        ".md" => "text/plain",
+        ".log" => "text/plain",
+        ".ini" or ".cfg" or ".conf" => "text/plain",
+        ".sql" => "text/plain",
+        ".pdf" => "application/pdf",
+        ".jpg" or ".jpeg" => "image/jpeg",
+        ".png" => "image/png",
+        ".gif" => "image/gif",
+        ".webp" => "image/webp",
+        ".svg" => "image/svg+xml",
+        ".mp4" => "video/mp4",
+        ".webm" => "video/webm",
+        ".mov" => "video/quicktime",
+        ".avi" => "video/x-msvideo",
+        ".mkv" => "video/x-matroska",
+        ".mp3" => "audio/mpeg",
+        ".wav" => "audio/wav",
+        ".ogg" => "audio/ogg",
+        ".flac" => "audio/flac",
+        ".aac" => "audio/aac",
+        ".doc" => "application/msword",
+        ".docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        ".xls" => "application/vnd.ms-excel",
+        ".xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        ".zip" => "application/zip",
+        ".rar" => "application/x-rar-compressed",
+        _ => "application/octet-stream"
+    };
+
+    private static bool IsPreviewable(string extension) => extension switch
+    {
+        ".txt" or ".csv" or ".json" or ".xml" or ".css" or ".js" or ".ts" or ".cs" or ".py"
+        or ".java" or ".c" or ".cpp" or ".h" or ".rb" or ".go" or ".rs" or ".sh" or ".bash"
+        or ".yaml" or ".yml" or ".md" or ".log" or ".ini" or ".cfg" or ".conf" or ".sql"
+        or ".html" or ".htm" => true,
+        ".pdf" => true,
+        ".jpg" or ".jpeg" or ".png" or ".gif" or ".webp" or ".svg" => true,
+        ".mp4" or ".webm" or ".mov" => true,
+        ".mp3" or ".wav" or ".ogg" or ".flac" or ".aac" => true,
+        _ => false
+    };
+    [HttpPut("item/{itemId}/rename")]
+    [Authorize(Policy = Constants.AuthPolicy.RequireEditorRole)]
+    public async Task<IActionResult> RenameItem(Guid itemId, [FromBody] RenameItemRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.NewName))
+        {
+            return BadRequest("Name cannot be empty.");
+        }
+
+        var item = await _uploadItemRepo.Get(itemId);
+        if (item == null)
+        {
+            return NotFound("File not found.");
+        }
+
+        var originalExtension = Path.GetExtension(item.FileName);
+        var newNameWithoutExt = Path.GetFileNameWithoutExtension(request.NewName.Trim());
+        item.FileName = newNameWithoutExt + originalExtension;
+
+        await _uploadItemRepo.UpdateAsync(item);
+
+        return Ok(UploadItemResponse.FromUploadItem(_preSignUrlService, item));
+    }
+
+    [AllowAnonymous]
+    [HttpGet("group/{groupId}/download-all")]
+    public async Task<IActionResult> DownloadAll(Guid groupId, [FromQuery] int expires, [FromQuery] string signature)
+    {
+        if (!_preSignUrlService.ValidatePreSignedUrl(groupId, expires, signature))
+        {
+            return Unauthorized("Invalid signature.");
+        }
+
+        var uploadItems = await _uploadItemRepo.GetByGroupId(groupId);
+        var validItems = uploadItems.Where(i =>
+        {
+            var file = new FileInfo(i.PhysicalPath);
+            if (!file.Exists)
+                return false;
+            var ext = Path.GetExtension(i.FileName).ToLowerInvariant();
+            return !IsVideoFile(ext);
+        }).ToList();
+
+        if (validItems.Count == 0)
+        {
+            return NotFound("No downloadable files found.");
+        }
+
+        Response.ContentType = "application/zip";
+        Response.Headers.ContentDisposition = "attachment; filename=\"files.zip\"";
+
+        var usedNames = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
+        using var archive = new ZipArchive(Response.BodyWriter.AsStream(), ZipArchiveMode.Create, leaveOpen: true);
+        foreach (var item in validItems)
+        {
+            var entryName = GetUniqueFileName(item.FileName, usedNames);
+            var entry = archive.CreateEntry(entryName, CompressionLevel.Fastest);
+            await using var entryStream = entry.Open();
+            await using var fileStream = System.IO.File.OpenRead(item.PhysicalPath);
+            await fileStream.CopyToAsync(entryStream);
+        }
+
+        return new EmptyResult();
+    }
+
+    private static string GetUniqueFileName(string fileName, Dictionary<string, int> usedNames)
+    {
+        if (!usedNames.TryGetValue(fileName, out var count))
+        {
+            usedNames[fileName] = 1;
+            return fileName;
+        }
+        usedNames[fileName] = count + 1;
+        var nameWithoutExt = Path.GetFileNameWithoutExtension(fileName);
+        var ext = Path.GetExtension(fileName);
+        return $"{nameWithoutExt} ({count + 1}){ext}";
+    }
+
+    private static bool IsVideoFile(string extension) => extension switch
+    {
+        ".mp4" or ".webm" or ".mov" or ".avi" or ".mkv" or ".wmv" or ".flv" or ".m4v" => true,
+        _ => false
+    };
+
     [HttpGet("group/{groupId}")]
     public async Task<IActionResult> GetGroup(Guid groupId)
     {
@@ -305,7 +483,20 @@ public class FileController : ControllerBase
 
 
         }
-        return Ok(result);
+
+        // Only include download-all URL when there are 2+ non-video files
+        string? downloadAllUrl = null;
+        var zippableCount = result.Count(r => !IsVideoFile(Path.GetExtension(r.Name).ToLowerInvariant()));
+        if (zippableCount >= 2)
+        {
+            downloadAllUrl = $"/api/file/group/{groupId}/download-all{_preSignUrlService.GeneratePreSignedUrl(groupId, new TimeSpan(24, 0, 0))}";
+        }
+
+        return Ok(new GroupResponse
+        {
+            Items = result,
+            DownloadAllUrl = downloadAllUrl
+        });
     }
 }
 
@@ -316,6 +507,10 @@ public class UploadItemResponse
     public long? Size { get; set; }
     public object? Metadata { get; set; }
     public string? Url { get; set; }
+    public string? RelativePath { get; set; }
+    public int DownloadCount { get; set; }
+    public DateTime? LastDownload { get; set; }
+    public DateTime CreatedDate { get; set; }
 
     public static UploadItemResponse FromUploadItem(PreSignUrlService preSignUrlService, UploadItem item)
     {
@@ -356,9 +551,33 @@ public class UploadItemResponse
             Id = item.ItemId,
             Size = item.Size,
             Metadata = metadata,
-            Url = url
+            Url = url,
+            RelativePath = item.RelativePath,
+            DownloadCount = item.DownloadCount,
+            LastDownload = item.LastDownload,
+            CreatedDate = item.CreatedDate
         };
     }
+}
+public class StorageUsageResponse
+{
+    public int TotalItems { get; set; }
+    public long TotalSize { get; set; }
+    public int GroupCount { get; set; }
+    public long? QuotaBytes { get; set; }
+    public List<GroupStorageUsageResponse> Groups { get; set; } = new();
+}
+public class GroupStorageUsageResponse
+{
+    public Guid GroupId { get; set; }
+    public int ItemCount { get; set; }
+    public long TotalSize { get; set; }
+    public DateTime? LastUpload { get; set; }
+}
+public class GroupResponse
+{
+    public List<UploadItemResponse> Items { get; set; } = new();
+    public string? DownloadAllUrl { get; set; }
 }
 public record CreateUploadItem(IFormFile File, string FileName, DateTime Expiration);
 public record CreateUploadItemResponse(Guid ItemId);
@@ -379,13 +598,15 @@ public class UploadSession
     public Guid GroupId { get; set; }
     public int TotalChunks { get; set; }
     public long TotalFileSize { get; set; }
-    public HashSet<int> ChunksReceived { get; set; } = new();
+    public string? RelativePath { get; set; }
+    public ConcurrentDictionary<int, bool> ChunksReceived { get; set; } = new();
     public DateTime CreatedAt { get; set; }
 }
 public class RegularUploadRequest
 {
     public IFormFile File { get; set; } = null!;
     public string? FileName { get; set; }
+    public string? RelativePath { get; set; }
 }
 public class ChunkUploadRequest
 {
@@ -398,11 +619,16 @@ public class ChunkUploadRequest
     public long Length { get; set; }
     public long TotalFileSize { get; set; }
 }
+public class RenameItemRequest
+{
+    public string NewName { get; set; } = string.Empty;
+}
 public class ChunkUploadStartRequest
 {
     public string FileName { get; set; } = string.Empty;
     public int TotalChunks { get; set; }
     public long TotalFileSize { get; set; }
+    public string? RelativePath { get; set; }
 }
 // Response Models
 public class ChunkUploadResponse

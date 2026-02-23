@@ -56,6 +56,16 @@ public static class Constants
         public const string RequireEditorRole = "RequireEditorRole";
         public const string AnyRole = "AnyRole";
     }
+    public static class AuditActions
+    {
+        public const string FileDownload = "FileDownload";
+        public const string LinkLogin = "LinkLogin";
+        public const string AdminLogin = "AdminLogin";
+        public const string GroupCreated = "GroupCreated";
+        public const string GroupDeleted = "GroupDeleted";
+        public const string LinkCreated = "LinkCreated";
+        public const string FileUploaded = "FileUploaded";
+    }
     public static class SystemGuids
     {
         public static Guid SystemUserId = Guid.Parse("122C665D-B146-4BDD-B73A-61D70996B101");

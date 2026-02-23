@@ -1,6 +1,7 @@
 ﻿using Dapper;
 using FileLink.Common;
 using FileLink.Repos;
+using FileLink.Services;
 using RoboDodd.OrmLite;
 
 namespace LogSummaryService
@@ -10,52 +11,61 @@ namespace LogSummaryService
         private readonly ILogger<FileCleanUpBackgroundService> _logger;
         private readonly IDbConnectionFactory _dbFactory;
         private readonly StorageSettings _storageSettings;
+        private readonly AuditLogRepo _auditLogRepo;
 
         private readonly TimeSpan _executionTime;
 
         public FileCleanUpBackgroundService(IDbConnectionFactory dbFactory,
             ILogger<FileCleanUpBackgroundService> logger,
-            StorageSettings storageSettings)
+            StorageSettings storageSettings,
+            AuditLogRepo auditLogRepo)
         {
             _dbFactory = dbFactory;
             _logger = logger;
             // Default to running at 1:00 AM
             _executionTime = TimeSpan.FromHours(1);
             _storageSettings = storageSettings;
+            _auditLogRepo = auditLogRepo;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            _logger.LogInformation("Log Summary Background Service is starting.");
+            _logger.LogInformation("File Cleanup Background Service is starting.");
+
+            // Run immediately on startup
+            await RunCleanup();
 
             while (!stoppingToken.IsCancellationRequested)
             {
-                // Calculate time until next execution
                 var now = DateTime.UtcNow;
                 var nextRun = CalculateNextRunTime(now);
                 var delay = nextRun - now;
 
-                _logger.LogInformation($"Next log summary update scheduled for {nextRun:yyyy-MM-dd HH:mm:ss}");
+                _logger.LogInformation($"Next file cleanup scheduled for {nextRun:yyyy-MM-dd HH:mm:ss}");
 
-                // Wait until the scheduled time
                 await Task.Delay(delay, stoppingToken);
 
-                // If cancellation was requested during the delay, exit
                 if (stoppingToken.IsCancellationRequested)
                     break;
 
-                try
-                {
-                    await CleanUpExpiredFiles();
-                    _logger.LogInformation("Log summary update completed successfully.");
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error updating log summary table.");
-                }
+                await RunCleanup();
             }
 
-            _logger.LogInformation("Log Summary Background Service is stopping.");
+            _logger.LogInformation("File Cleanup Background Service is stopping.");
+        }
+
+        private async Task RunCleanup()
+        {
+            try
+            {
+                await CleanUpExpiredFiles();
+                await CleanUpAuditLogs();
+                _logger.LogInformation("File cleanup completed successfully.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during file cleanup.");
+            }
         }
 
         private DateTime CalculateNextRunTime(DateTime now)
@@ -75,23 +85,28 @@ namespace LogSummaryService
             return todayExecutionTime;
         }
 
+        private async Task CleanUpAuditLogs()
+        {
+            var cutoff = DateTime.UtcNow.AddDays(-90);
+            await _auditLogRepo.DeleteOlderThan(cutoff);
+            _logger.LogInformation("Deleted audit log entries older than 90 days.");
+        }
         private async Task CleanUpUploadGroups()
         {
-            // get all UploadGroup's without a linkcode and are atleast 24hours old or the linkcode has been expired for 24hours
+            var expireCutoff = DateTime.UtcNow.AddDays(-_storageSettings.ExpiredLinkRetentionDays);
+            var orphanCutoff = DateTime.UtcNow.AddHours(-24);
 
             using var db = _dbFactory.CreateDbConnection();
             db.Open();
             var sql = @"
-
 SELECT ug.*
 FROM UploadGroup ug
 LEFT JOIN LinkCode lc ON lc.GroupId = ug.GroupId
 WHERE
-  (lc.Code IS NULL OR
-   lc.ExpireDate < datetime('now', '-24 hours'))
-  AND ug.CreatedDate < datetime('now', '-24 hours');
+  (lc.Code IS NULL OR lc.ExpireDate < @expireCutoff)
+  AND ug.CreatedDate < @orphanCutoff;
 ";
-            var uploadGroups = await db.QueryAsync<UploadGroup>(sql);
+            var uploadGroups = await db.QueryAsync<UploadGroup>(sql, new { expireCutoff, orphanCutoff });
             foreach (var uploadGroup in uploadGroups)
             {
                 _logger.LogInformation($"Deleting UploadGroup {uploadGroup.GroupId} with no linkcode or expired linkcode");

@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { LogoComponent } from '../../_components/logo/logo.component';
 import { AuthService } from '../../_services/auth/auth.service';
@@ -26,6 +27,7 @@ import { AuthLinkService } from '../../_services/web-api/auth-link.service';
               required
               class="form-control"
               placeholder="Enter your username"
+              [disabled]="loading()"
             />
           </div>
 
@@ -39,11 +41,19 @@ import { AuthLinkService } from '../../_services/web-api/auth-link.service';
               required
               class="form-control"
               placeholder="Enter your password"
+              [disabled]="loading()"
             />
           </div>
 
           <div class="form-actions">
-            <button type="submit" class="login-button">Log In</button>
+            <button type="submit" class="login-button" [disabled]="loading()">
+              @if (loading()) {
+                <span class="btn-spinner"></span>
+                Signing in...
+              } @else {
+                Log In
+              }
+            </button>
           </div>
           @if (error()) {
             <div class="error-container">
@@ -64,21 +74,29 @@ export class LoginPageComponent {
   username: string = '';
   router = inject(RouterHelperService);
   error = signal<string | null>(null);
+  loading = signal(false);
   constructor() {
-    this.authService.getUser().subscribe((x) => {
-      if (x) {
-        this.router.goHome();
-      }
-    });
+    this.authService
+      .getUser()
+      .pipe(takeUntilDestroyed())
+      .subscribe((x) => {
+        if (x) {
+          this.router.goHome();
+        }
+      });
   }
   onSubmit() {
+    if (this.loading()) return;
     this.error.set(null);
+    this.loading.set(true);
     this.authLinkService.loginAdmin(this.username, this.password).subscribe({
       next: (x) => {
         if (x.token) this.authService.setToken(x.token, x.refreshToken, x.expiresIn);
+        this.loading.set(false);
       },
       error: (_err) => {
-        this.error.set('Login failed');
+        this.error.set('Invalid username or password. Please try again.');
+        this.loading.set(false);
       },
     });
   }

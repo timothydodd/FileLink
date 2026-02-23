@@ -24,7 +24,7 @@ public class UploadService
         _backgroundTaskQueue = backgroundTaskQueue;
         _uploadItemRepo = uploadItemRepo;
     }
-    public CreateUploadItemResponse StartUpload(Guid groupId, string fileName, long totalFileSize, int totalChunks)
+    public CreateUploadItemResponse StartUpload(Guid groupId, string fileName, long totalFileSize, int totalChunks, string? relativePath = null)
     {
         var itemId = Guid.NewGuid();
         var session = new UploadSession
@@ -34,7 +34,8 @@ public class UploadService
             GroupId = groupId,
             TotalChunks = totalChunks,
             TotalFileSize = totalFileSize,
-            ChunksReceived = new HashSet<int>(),
+            RelativePath = relativePath,
+            ChunksReceived = new ConcurrentDictionary<int, bool>(),
             CreatedAt = DateTime.UtcNow
         };
         _activeSessions[itemId.ToString()] = session;
@@ -73,16 +74,14 @@ public class UploadService
         var chunkFileName = $"chunk.{request.ChunkNumber:D4}";
         var chunkPath = Path.Combine(tempDir, chunkFileName);
 
-        await using var fileStream = new FileStream(chunkPath, FileMode.Create,
-            FileAccess.Write, FileShare.None, 81920, useAsync: true);
+        await using (var fileStream = new FileStream(chunkPath, FileMode.Create,
+            FileAccess.Write, FileShare.None, 81920, useAsync: true))
         {
             await request.Chunk.CopyToAsync(fileStream);
         }
 
-        fileStream.Close();
-        fileStream.Dispose();
         // Mark chunk as received
-        session.ChunksReceived.Add(request.ChunkNumber);
+        session.ChunksReceived[request.ChunkNumber] = true;
         _logger.LogInformation("Saved chunk {ChunkNumber}/{TotalChunks} for session {ItemId}",
             request.ChunkNumber + 1, request.TotalChunks, session.ItemId);
 
@@ -100,6 +99,7 @@ public class UploadService
                 GroupId = session.GroupId,
                 PhysicalPath = finalPath,
                 Size = session.TotalFileSize,
+                RelativePath = session.RelativePath,
                 CreatedDate = DateTime.UtcNow,
             };
 
@@ -155,6 +155,7 @@ public class UploadService
             GroupId = groupId,
             PhysicalPath = filePath,
             Size = request.File.Length,
+            RelativePath = request.RelativePath,
             CreatedDate = DateTime.UtcNow,
         };
 
@@ -190,9 +191,6 @@ public class UploadService
                     FileAccess.Read, FileShare.Read, 81920, useAsync: true);
 
                 await chunkStream.CopyToAsync(outputStream);
-
-                chunkStream.Close();
-                chunkStream.Dispose();
 
                 // Delete chunk after combining
                 System.IO.File.Delete(chunkPath);

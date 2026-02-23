@@ -23,6 +23,9 @@ import { AuthLinkService } from '../../_services/web-api/auth-link.service';
         <div class="form-group">
           <label for="newPassword">New Password</label>
           <input type="password" id="newPassword" [ngModel]="newPassword()" (ngModelChange)="newPassword.set($event)" />
+          @if (newPassword().length > 0 && newPassword().length < 8) {
+            <div class="field-error">Password must be at least 8 characters</div>
+          }
         </div>
         <div class="form-group">
           <label for="confirmPassword">Confirm New Password</label>
@@ -32,10 +35,10 @@ import { AuthLinkService } from '../../_services/web-api/auth-link.service';
             [ngModel]="confirmPassword()"
             (ngModelChange)="confirmPassword.set($event)"
           />
+          @if (confirmPassword().length > 0 && newPassword() !== confirmPassword()) {
+            <div class="field-error">Passwords do not match</div>
+          }
         </div>
-        @if (hasError()) {
-          <div class="error">Passwords must match and be at least 8 characters.</div>
-        }
       </div>
       <div slot="footer">
         <div class="button-group">
@@ -60,7 +63,7 @@ export class ChangePasswordModalComponent {
     const np = this.newPassword();
     const cp = this.confirmPassword();
 
-    return np !== cp || np.length < 3;
+    return np !== cp || np.length < 8;
   });
 
   changePassword() {

@@ -43,6 +43,14 @@ public class UploadItemRepo
         var result = await db.QueryAsync<UploadItem>("SELECT * FROM UploadItem WHERE Metadata IS NULL");
         return result.ToList();
     }
+    public async Task IncrementDownloadCount(Guid itemId)
+    {
+        using var db = _dbFactory.CreateDbConnection();
+        db.Open();
+        await db.ExecuteAsync(
+            "UPDATE UploadItem SET DownloadCount = DownloadCount + 1, LastDownload = @Now WHERE ItemId = @ItemId",
+            new { ItemId = itemId.ToString(), Now = DateTime.UtcNow.ToString("o") });
+    }
 }
 public class UploadItem
 {
@@ -56,6 +64,9 @@ public class UploadItem
     public DateTime CreatedDate { get; set; }
     [CustomField("JSON")]
     public string? Metadata { get; set; }
+    public string? RelativePath { get; set; }
     public long Size { get; set; }
-
+    [Default(typeof(int), "0")]
+    public int DownloadCount { get; set; }
+    public DateTime? LastDownload { get; set; }
 }

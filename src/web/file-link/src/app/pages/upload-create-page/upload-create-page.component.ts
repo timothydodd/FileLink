@@ -1,8 +1,9 @@
 import { CommonModule } from '@angular/common';
 import { Component, inject, signal, viewChild } from '@angular/core';
-import { toObservable } from '@angular/core/rxjs-interop';
+
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { ModalContainerService, SkeletonComponent } from '@rd-ui';
+import { ModalContainerService, SkeletonComponent, ToastService } from '@rd-ui';
 import { switchMap, tap } from 'rxjs';
 import { UploadItemsComponent, UploadItemsStatus } from '../../_components/upload-items/upload-items.component';
 
@@ -40,28 +41,37 @@ export class UploadCreatePageComponent {
   router = inject(RouterHelperService);
   jwtAuthProvider = inject(JwtAuthProvider);
   modalContainerService = inject(ModalContainerService);
+  toastr = inject(ToastService);
   groupId: string | null = null;
   localFilesEnabled = signal(false);
   isLoading = signal(true);
   constructor() {
-    toObservable(this.uploads).subscribe((uploads) => {
-      if (uploads) {
-        uploads.fileService = (file: File) => {
-          return this.chunkService.create(file, this.groupId!);
-        };
-        uploads.prepService = () => {
-          return this.uploadService.createGroup().pipe(
-            tap((g) => {
-              this.groupId = g.groupId;
-            })
-          );
-        };
-      }
-    });
-    this.uploadService.getLocalInfo().subscribe((x) => {
-      this.localFilesEnabled.set(x.hasLocalPaths);
-      this.isLoading.set(false);
-    });
+    toObservable(this.uploads)
+      .pipe(takeUntilDestroyed())
+      .subscribe((uploads) => {
+        if (uploads) {
+          uploads.fileService = (file: File, relativePath?: string) => {
+            return this.chunkService.create(file, this.groupId!, relativePath);
+          };
+          uploads.prepService = () => {
+            return this.uploadService.createGroup().pipe(
+              tap((g) => {
+                this.groupId = g.groupId;
+              })
+            );
+          };
+        }
+      });
+    this.uploadService
+      .getLocalInfo()
+      .pipe(takeUntilDestroyed())
+      .subscribe({
+        next: (x) => {
+          this.localFilesEnabled.set(x.hasLocalPaths);
+          this.isLoading.set(false);
+        },
+        error: () => this.isLoading.set(false),
+      });
   }
 
   uploadItemsChanged(status: UploadItemsStatus) {
@@ -93,8 +103,13 @@ export class UploadCreatePageComponent {
           return this.uploadService.attachLocalFile(g.groupId!, items);
         })
       )
-      .subscribe(() => {
-        this.router.goView(this.groupId!);
+      .subscribe({
+        next: () => {
+          this.router.goView(this.groupId!);
+        },
+        error: () => {
+          this.toastr.error('Failed to attach files');
+        },
       });
   }
 }

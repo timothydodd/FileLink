@@ -5,6 +5,7 @@ import {
   Component,
   computed,
   ElementRef,
+  inject,
   input,
   model,
   output,
@@ -14,6 +15,7 @@ import {
 } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
+import { ToastService } from '@rd-ui';
 import { LucideAngularModule } from 'lucide-angular';
 import { Observable } from 'rxjs';
 import { ChunkUploadProgress, UploadResult } from '../../_services/web-api/upload-chunk.service';
@@ -30,6 +32,7 @@ import { ProgressComponent } from './progress';
       (dragover)="onDragOver($event)"
       (dragleave)="onDragLeave($event)"
       (drop)="onDrop($event)"
+      aria-label="Drag and drop files here to upload"
     >
       <div class="box-input">
         <lucide-angular
@@ -61,13 +64,24 @@ import { ProgressComponent } from './progress';
       @if (fl.length > 0 || attachmentsView().length > 0) {
         <div class="items">
           @for (file of fl; track $index) {
-            <div class="item pulse">
+            <div class="item" [class.pulse]="!file.failed()" [class.item-failed]="file.failed()">
               <div class="icon">
-                <lucide-angular name="cloud-upload" size="48"></lucide-angular>
+                @if (file.failed()) {
+                  <lucide-angular name="alert-circle" size="48" class="error-icon"></lucide-angular>
+                } @else {
+                  <lucide-angular name="cloud-upload" size="48"></lucide-angular>
+                }
               </div>
               <div class="name">
-                {{ file.file.name }}
+                {{ file.relativePath || file.file.name }}
               </div>
+              @if (file.failed()) {
+                <div class="error-text">{{ file.errorMessage() }}</div>
+                <button class="retry-btn" (click)="retryUpload(file)">
+                  <lucide-angular name="refresh-cw" [size]="14"></lucide-angular>
+                  Retry
+                </button>
+              }
               @if (file.showProgress()) {
                 <div style="align-self: stretch;">
                   <lib-progress [progress]="file.progress()"></lib-progress>
@@ -89,11 +103,12 @@ import { ProgressComponent } from './progress';
   standalone: true,
 })
 export class UploadItemsComponent {
+  toastr = inject(ToastService);
   filePicker = viewChild<ElementRef>('filePicker');
   fileList = signal<IUploadFile[]>([]);
   showDragArea = input(false);
   prepService: (() => Observable<any>) | undefined = undefined;
-  fileService: ((file: File) => Observable<ChunkUploadProgress | UploadResult>) | undefined;
+  fileService: ((file: File, relativePath?: string) => Observable<ChunkUploadProgress | UploadResult>) | undefined;
   isBusy = signal(false);
   attachments = model<IUploadItem[]>([]);
   hideItemOnFinished = input(true);
@@ -104,7 +119,7 @@ export class UploadItemsComponent {
   isDragOver = signal(false);
   allowCloudFiles = input(false);
   attachCloudClicked = output();
-  public Upload(uploadService: (file: File) => Observable<ChunkUploadProgress | UploadResult>) {
+  public Upload(uploadService: (file: File, relativePath?: string) => Observable<ChunkUploadProgress | UploadResult>) {
     if (!this.fileService) this.fileService = uploadService;
     this.filePicker()?.nativeElement.click();
   }
@@ -124,31 +139,89 @@ export class UploadItemsComponent {
     event.preventDefault();
     event.stopPropagation();
     this.isDragOver.set(false);
+
+    const items = event.dataTransfer?.items;
+    if (items) {
+      const entries: FileSystemEntry[] = [];
+      for (let i = 0; i < items.length; i++) {
+        const entry = items[i].webkitGetAsEntry?.();
+        if (entry) entries.push(entry);
+      }
+      if (entries.length > 0) {
+        this.traverseEntries(entries).then((fileEntries) => {
+          if (fileEntries.length > 0) {
+            this.handleFileEntries(fileEntries);
+          }
+        });
+        return;
+      }
+    }
+
+    // Fallback for browsers without entry API
     const files = event.dataTransfer?.files;
     if (files) {
       this.handleFiles(files);
     }
   }
 
-  onFileSelected(event: Event) {
-    const element = event.target as HTMLInputElement;
-    const files = element.files;
+  private async traverseEntries(entries: FileSystemEntry[]): Promise<{ file: File; relativePath: string }[]> {
+    const results: { file: File; relativePath: string }[] = [];
+    for (const entry of entries) {
+      await this.traverseEntry(entry, '', results);
+    }
+    return results;
+  }
 
-    if (files) {
-      this.handleFiles(files);
+  private async traverseEntry(
+    entry: FileSystemEntry,
+    path: string,
+    results: { file: File; relativePath: string }[]
+  ): Promise<void> {
+    if (entry.isFile) {
+      const fileEntry = entry as FileSystemFileEntry;
+      const file = await new Promise<File>((resolve, reject) => fileEntry.file(resolve, reject));
+      const relativePath = path ? `${path}/${entry.name}` : '';
+      results.push({ file, relativePath });
+    } else if (entry.isDirectory) {
+      const dirEntry = entry as FileSystemDirectoryEntry;
+      const childEntries = await this.readAllEntries(dirEntry.createReader());
+      const dirPath = path ? `${path}/${entry.name}` : entry.name;
+      for (const child of childEntries) {
+        await this.traverseEntry(child, dirPath, results);
+      }
     }
   }
-  handleFiles(eventFiles: FileList | null) {
-    if (!eventFiles) return;
+
+  private readAllEntries(reader: FileSystemDirectoryReader): Promise<FileSystemEntry[]> {
+    return new Promise((resolve, reject) => {
+      const allEntries: FileSystemEntry[] = [];
+      const readBatch = () => {
+        reader.readEntries((entries) => {
+          if (entries.length === 0) {
+            resolve(allEntries);
+          } else {
+            allEntries.push(...entries);
+            readBatch();
+          }
+        }, reject);
+      };
+      readBatch();
+    });
+  }
+
+  handleFileEntries(fileEntries: { file: File; relativePath: string }[]) {
     var files: IUploadFile[] = [];
 
-    for (const file of eventFiles) {
+    for (const entry of fileEntries) {
       var attachment = {
-        description: file.name,
-        file: file,
+        description: entry.relativePath || entry.file.name,
+        file: entry.file,
+        relativePath: entry.relativePath || undefined,
         progress: signal(0),
         showProgress: signal(false),
         uploadSpeed: signal(''),
+        failed: signal(false),
+        errorMessage: signal(''),
         lastLoaded: 0,
         lastTimestamp: 0,
         uploadStartTime: 0,
@@ -171,18 +244,75 @@ export class UploadItemsComponent {
       }
     }
   }
+
+  onFileSelected(event: Event) {
+    const element = event.target as HTMLInputElement;
+    const files = element.files;
+
+    if (files) {
+      this.handleFiles(files);
+    }
+  }
+  handleFiles(eventFiles: FileList | null) {
+    if (!eventFiles) return;
+    var files: IUploadFile[] = [];
+
+    for (const file of eventFiles) {
+      var attachment = {
+        description: file.name,
+        file: file,
+        progress: signal(0),
+        showProgress: signal(false),
+        uploadSpeed: signal(''),
+        failed: signal(false),
+        errorMessage: signal(''),
+        lastLoaded: 0,
+        lastTimestamp: 0,
+        uploadStartTime: 0,
+      } as IUploadFile;
+      files.push(attachment);
+    }
+
+    if (files.length > 0) {
+      var existingFiles = this.fileList() ?? [];
+      this.isBusy.set(true);
+      this.statusChanged.emit({ uploading: true });
+
+      this.fileList.set([...existingFiles, ...files]);
+      if (this.prepService) {
+        this.prepService().subscribe(() => {
+          this.uploadFiles(files);
+        });
+      } else {
+        this.uploadFiles(files);
+      }
+    }
+  }
+
+  retryUpload(file: IUploadFile) {
+    file.failed.set(false);
+    file.errorMessage.set('');
+    file.progress.set(0);
+    file.uploadSpeed.set('');
+    this.isBusy.set(true);
+    this.statusChanged.emit({ uploading: true });
+    this.uploadFiles([file]);
+  }
+
   uploadFiles(files: IUploadFile[]) {
     for (const f of files) {
       f.showProgress.set(true);
       f.uploadStartTime = Date.now(); // Track start time
       f.lastLoaded = 0; // For delta calculations
       if (!this.fileService) return;
-      this.fileService(f.file).subscribe((event) => {
+      this.fileService(f.file, f.relativePath).subscribe({
+        next: (event) => {
         var progress = event as ChunkUploadProgress;
 
         if ('success' in event) {
           var result = event as UploadResult;
           if (result.success) {
+            this.toastr.success(`${f.file.name} uploaded successfully`);
             this.fileList.update((x) => {
               return x.filter((y) => y !== f);
             });
@@ -199,7 +329,6 @@ export class UploadItemsComponent {
           if (allDone) {
             this.statusChanged.emit({ uploading: false });
             this.isBusy.set(false);
-            // this.fileList.set([]);
           }
         }
         if (progress) {
@@ -261,6 +390,18 @@ export class UploadItemsComponent {
           f.lastLoaded = bytesUploaded;
           f.lastTimestamp = now;
         }
+        },
+        error: () => {
+          f.showProgress.set(false);
+          f.failed.set(true);
+          f.errorMessage.set(`Upload failed`);
+          this.toastr.error(`Failed to upload ${f.file.name}`);
+          var allDone = this.fileList().every((x) => !x.showProgress());
+          if (allDone) {
+            this.statusChanged.emit({ uploading: false });
+            this.isBusy.set(false);
+          }
+        },
       });
     }
   }
@@ -272,8 +413,11 @@ export interface IUploadItem {
 export interface IUploadFile {
   description: string;
   file: File;
+  relativePath?: string;
   progress: WritableSignal<number>;
   showProgress: WritableSignal<boolean>;
+  failed: WritableSignal<boolean>;
+  errorMessage: WritableSignal<string>;
   uploadStartTime?: number;
   lastTimestamp?: number;
   lastLoaded?: number;

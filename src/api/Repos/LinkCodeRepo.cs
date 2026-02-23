@@ -32,7 +32,7 @@ public class LinkCodeRepo
 select lc.*, count(ui.ItemId) as ItemCount, SUM(ui.Size) as Size
 from LinkCode lc
 left join UploadItem ui on lc.GroupId = ui.GroupId
-group by lc.Code, lc.GroupId, lc.Role, lc.ExpireDate, lc.AppUserId, lc.MaxUses, lc.Uses, lc.CreatedDate, lc.LastAccess");
+group by lc.Code, lc.GroupId, lc.Role, lc.ExpireDate, lc.AppUserId, lc.MaxUses, lc.Uses, lc.CreatedDate, lc.LastAccess, lc.PasswordHash");
     }
     public async Task<IEnumerable<LinkCode>> GetAll(Guid groupId)
     {
@@ -68,6 +68,31 @@ group by lc.Code, lc.GroupId, lc.Role, lc.ExpireDate, lc.AppUserId, lc.MaxUses, 
         db.Open();
         await db.DeleteAsync(lc);
     }
+
+    public async Task DeleteByCodes(IEnumerable<string> codes)
+    {
+        using var db = _dbFactory.CreateDbConnection();
+        db.Open();
+        var codeList = codes.ToList();
+        var inClause = string.Join(",", codeList.Select((_, i) => $"@Code{i}"));
+        var parameters = new DynamicParameters();
+        for (int i = 0; i < codeList.Count; i++)
+            parameters.Add($"Code{i}", codeList[i]);
+        await db.ExecuteAsync($"DELETE FROM LinkCode WHERE Code IN ({inClause})", parameters);
+    }
+
+    public async Task ExpireByCodes(IEnumerable<string> codes)
+    {
+        using var db = _dbFactory.CreateDbConnection();
+        db.Open();
+        var codeList = codes.ToList();
+        var inClause = string.Join(",", codeList.Select((_, i) => $"@Code{i}"));
+        var parameters = new DynamicParameters();
+        parameters.Add("Now", DateTime.UtcNow.ToString("o"));
+        for (int i = 0; i < codeList.Count; i++)
+            parameters.Add($"Code{i}", codeList[i]);
+        await db.ExecuteAsync($"UPDATE LinkCode SET ExpireDate = @Now WHERE Code IN ({inClause})", parameters);
+    }
 }
 public class LinkCode
 {
@@ -83,6 +108,7 @@ public class LinkCode
     [Default(typeof(DateTime), "CURRENT_TIMESTAMP")]
     public DateTime CreatedDate { get; set; }
     public DateTime? LastAccess { get; set; }
+    public string? PasswordHash { get; set; }
 }
 
 public class LinkCodeWithItemCount : LinkCode

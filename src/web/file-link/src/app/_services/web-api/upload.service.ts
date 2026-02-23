@@ -10,7 +10,7 @@ export class UploadService {
   private readonly largeFileThreshold = 50 * 1024 * 1024; // 50MB
 
   getUploads(groupId: string) {
-    return this.http.get<UploadItemResponse[]>(`${this.configService.apiUrl}/api/file/group/${groupId}`);
+    return this.http.get<GroupResponse>(`${this.configService.apiUrl}/api/file/group/${groupId}`);
   }
 
   createGroup() {
@@ -24,6 +24,14 @@ export class UploadService {
   }
   getLocalFiles() {
     return this.http.get<FileIndexResponse>(`${this.configService.apiUrl}/api/file/local`);
+  }
+  renameItem(itemId: string, newName: string) {
+    return this.http.put<UploadItemResponse>(`${this.configService.apiUrl}/api/file/item/${itemId}/rename`, {
+      newName,
+    });
+  }
+  getStorageUsage() {
+    return this.http.get<StorageUsageResponse>(`${this.configService.apiUrl}/api/file/storage/usage`);
   }
   attachLocalFile(groupId: string, localFiles: AddLocalPath[]) {
     return this.http.put<UploadItemResponse>(
@@ -51,6 +59,10 @@ export interface GetLinkResponse {
 export interface CreateGroupResponse {
   groupId: string;
 }
+export interface GroupResponse {
+  items: UploadItemResponse[];
+  downloadAllUrl: string | null;
+}
 export interface GroupItemChanged extends UploadItemResponse {
   groupId: string;
 }
@@ -60,6 +72,10 @@ export interface UploadItemResponse {
   size: number | null;
   metadata: Metadata | null;
   url: string;
+  relativePath: string | null;
+  downloadCount: number;
+  lastDownload: string | null;
+  createdDate: string;
 }
 export interface Metadata {
   title: string | null;
@@ -85,4 +101,17 @@ export interface LocalFile {
 export interface AddLocalPath {
   localPathIndex: number;
   path: string;
+}
+export interface StorageUsageResponse {
+  totalItems: number;
+  totalSize: number;
+  groupCount: number;
+  quotaBytes: number | null;
+  groups: GroupStorageUsage[];
+}
+export interface GroupStorageUsage {
+  groupId: string;
+  itemCount: number;
+  totalSize: number;
+  lastUpload: string | null;
 }
