@@ -23,6 +23,13 @@ public class LinkCodeRepo
         db.Open();
         return await db.QuerySingleAsync<LinkCode>("select * from LinkCode where GroupId = @GroupId AND AppUserId = @AppUserId", new { GroupId = groupId, AppUserId = appUserId });
     }
+    public async Task<LinkCode?> GetReaderByGroupId(Guid groupId)
+    {
+        using var db = _dbFactory.CreateDbConnection();
+        db.Open();
+        return await db.QuerySingleOrDefaultAsync<LinkCode>(
+            "select * from LinkCode where GroupId = @GroupId AND Role = 'Reader'", new { GroupId = groupId });
+    }
     public async Task<IEnumerable<LinkCodeWithItemCount>> GetAll()
     {
         using var db = _dbFactory.CreateDbConnection();
@@ -32,7 +39,7 @@ public class LinkCodeRepo
 select lc.*, count(ui.ItemId) as ItemCount, SUM(ui.Size) as Size
 from LinkCode lc
 left join UploadItem ui on lc.GroupId = ui.GroupId
-group by lc.Code, lc.GroupId, lc.Role, lc.ExpireDate, lc.AppUserId, lc.MaxUses, lc.Uses, lc.CreatedDate, lc.LastAccess, lc.PasswordHash");
+group by lc.Code, lc.GroupId, lc.Role, lc.ExpireDate, lc.AppUserId, lc.MaxUses, lc.Uses, lc.CreatedDate, lc.LastAccess, lc.PasswordHash, lc.BandwidthLimitKBps");
     }
     public async Task<IEnumerable<LinkCode>> GetAll(Guid groupId)
     {
@@ -109,6 +116,7 @@ public class LinkCode
     public DateTime CreatedDate { get; set; }
     public DateTime? LastAccess { get; set; }
     public string? PasswordHash { get; set; }
+    public int? BandwidthLimitKBps { get; set; }
 }
 
 public class LinkCodeWithItemCount : LinkCode

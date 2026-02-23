@@ -25,6 +25,8 @@ interface SettingsFormModel {
   expirationType: 'days' | 'hours';
   passwordEnabled: boolean;
   password: string;
+  bandwidthEnabled: boolean;
+  bandwidthLimitMBps: number;
 }
 
 @Component({
@@ -80,19 +82,38 @@ interface SettingsFormModel {
                   }
                 </div>
 
-                <div class="setting-row">
-                  <rd-checkbox
-                    [formField]="settingsForm.passwordEnabled"
-                    label="Require password"
-                  ></rd-checkbox>
-                  @if (settingsModel().passwordEnabled) {
-                    <input
-                      type="password"
-                      [formField]="settingsForm.password"
-                      class="input-field"
-                      placeholder="Enter password"
-                    />
-                  }
+                <div class="settings-grid">
+                  <div class="setting-row">
+                    <rd-checkbox
+                      [formField]="settingsForm.passwordEnabled"
+                      label="Require password"
+                    ></rd-checkbox>
+                    @if (settingsModel().passwordEnabled) {
+                      <input
+                        type="password"
+                        [formField]="settingsForm.password"
+                        class="input-field"
+                        placeholder="Enter password"
+                      />
+                    }
+                  </div>
+
+                  <div class="setting-row">
+                    <rd-checkbox
+                      [formField]="settingsForm.bandwidthEnabled"
+                      label="Limit download speed"
+                    ></rd-checkbox>
+                    @if (settingsModel().bandwidthEnabled) {
+                      <div class="input-row">
+                        <input
+                          type="number"
+                          [formField]="settingsForm.bandwidthLimitMBps"
+                          class="input-field input-number"
+                        />
+                        <span class="input-suffix">MB/s</span>
+                      </div>
+                    }
+                  </div>
                 </div>
               </section>
             </div>
@@ -151,11 +172,16 @@ export class SettingModalComponent implements OnInit {
     expirationType: 'days',
     passwordEnabled: false,
     password: '',
+    bandwidthEnabled: false,
+    bandwidthLimitMBps: 1,
   });
   settingsForm = form(this.settingsModel);
 
   hasError = computed(() => {
-    return this.settingsModel().expirationValue < 1;
+    const model = this.settingsModel();
+    if (model.expirationValue < 1) return true;
+    if (model.bandwidthEnabled && model.bandwidthLimitMBps <= 0) return true;
+    return false;
   });
 
   isDirty = computed(() => {
@@ -214,11 +240,16 @@ export class SettingModalComponent implements OnInit {
       }
     }
 
+    const bandwidthKBps = z.bandwidthLimitKBps ?? 0;
+    const hasBandwidth = bandwidthKBps > 0;
+
     this.settingsModel.set({
       expirationValue,
       expirationType,
       passwordEnabled: z.hasPassword ?? false,
       password: '',
+      bandwidthEnabled: hasBandwidth,
+      bandwidthLimitMBps: hasBandwidth ? parseFloat((bandwidthKBps / 1024).toFixed(2)) : 1,
     });
   }
 
@@ -253,13 +284,14 @@ export class SettingModalComponent implements OnInit {
         hoursValid,
         passwordEnabled: model.passwordEnabled,
         password: model.password || undefined,
+        bandwidthLimitKBps: model.bandwidthEnabled ? Math.round(model.bandwidthLimitMBps * 1024) : 0,
       })
       .pipe(take(1))
       .subscribe({
-        next: (z) => {
-          this.loadUrl(z);
+        next: () => {
           this.saving.set(false);
           this.toastr.success('Settings saved');
+          this.modalComponent.close();
         },
         error: () => {
           this.toastr.error('Failed to save settings');

@@ -53,7 +53,7 @@ export class AuthLinkService {
   setLinkPassword(groupId: string, password: string | null) {
     return this.http.post(`${this.configService.apiUrl}/api/auth/group/${groupId}/link/password`, { password });
   }
-  updateLinkSettings(groupId: string, settings: { hoursValid?: number; passwordEnabled?: boolean; password?: string | null }) {
+  updateLinkSettings(groupId: string, settings: { hoursValid?: number; passwordEnabled?: boolean; password?: string | null; bandwidthLimitKBps?: number | null }) {
     return this.http.post<LoginRequest>(`${this.configService.apiUrl}/api/auth/group/${groupId}/link/settings`, settings);
   }
   bulkDeleteLinks(codes: string[]) {
@@ -70,6 +70,7 @@ export interface LoginRequest {
   code: string;
   expirationDate: Date | string;
   hasPassword: boolean;
+  bandwidthLimitKBps: number | null;
 }
 export interface LoginPasswordRequiredResponse {
   passwordRequired: boolean;

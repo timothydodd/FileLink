@@ -30,6 +30,7 @@ public class FileController : ControllerBase
 
     private readonly LocalFileCache _localFileCache;
     private readonly AuditLogService _auditLogService;
+    private readonly LinkCodeRepo _linkCodeRepo;
 
 
     public FileController(ILogger<FileController> logger,
@@ -40,7 +41,8 @@ public class FileController : ControllerBase
         PreSignUrlService preSignUrlService,
         LocalFileCache localFileCache,
         UploadService uploadService,
-        AuditLogService auditLogService)
+        AuditLogService auditLogService,
+        LinkCodeRepo linkCodeRepo)
     {
         _logger = logger;
         _uploadGroupRepo = uploadGroupRepo;
@@ -51,6 +53,7 @@ public class FileController : ControllerBase
         _localFileCache = localFileCache;
         _uploadService = uploadService;
         _auditLogService = auditLogService;
+        _linkCodeRepo = linkCodeRepo;
     }
 
     [HttpGet("storage/usage")]
@@ -275,8 +278,15 @@ public class FileController : ControllerBase
             });
             _ = _auditLogService.LogAsync(AuditActions.FileDownload, itemId: itemId, detail: item.FileName);
 
-            var stream = System.IO.File.OpenRead(item.PhysicalPath);
+            Stream stream = System.IO.File.OpenRead(item.PhysicalPath);
             var fileName = item.FileName;
+
+            // Apply bandwidth throttle if configured on the reader link
+            var readerLink = await _linkCodeRepo.GetReaderByGroupId(item.GroupId);
+            if (readerLink?.BandwidthLimitKBps is > 0)
+            {
+                stream = new Common.ThrottledStream(stream, readerLink.BandwidthLimitKBps.Value);
+            }
 
             // Get content type by file extension
             var extension = Path.GetExtension(fileName).ToLowerInvariant();
@@ -409,12 +419,22 @@ public class FileController : ControllerBase
             return NotFound("No downloadable files found.");
         }
 
+        // Look up bandwidth limit for this group
+        var readerLink = await _linkCodeRepo.GetReaderByGroupId(groupId);
+        var bandwidthLimitKBps = readerLink?.BandwidthLimitKBps;
+
         Response.ContentType = "application/zip";
         Response.Headers.ContentDisposition = "attachment; filename=\"files.zip\"";
 
         var usedNames = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
-        using var archive = new ZipArchive(Response.BodyWriter.AsStream(), ZipArchiveMode.Create, leaveOpen: true);
+        Stream outputStream = Response.BodyWriter.AsStream();
+        if (bandwidthLimitKBps is > 0)
+        {
+            outputStream = new Common.ThrottledStream(outputStream, bandwidthLimitKBps.Value);
+        }
+
+        using var archive = new ZipArchive(outputStream, ZipArchiveMode.Create, leaveOpen: true);
         foreach (var item in validItems)
         {
             var entryName = GetUniqueFileName(item.FileName, usedNames);

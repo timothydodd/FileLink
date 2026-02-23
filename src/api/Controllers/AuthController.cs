@@ -204,7 +204,7 @@ public class AuthController : Controller
 
         _ = _auditLogService.LogAsync(AuditActions.LinkCreated, _userResolverService.GetAppUserId(), groupId, detail: $"Code: {code.Code}");
 
-        return Ok(new ShareLinkResponse(code.Code, DateTime.SpecifyKind(code.Expiration, DateTimeKind.Utc), code.HasPassword));
+        return Ok(new ShareLinkResponse(code.Code, DateTime.SpecifyKind(code.Expiration, DateTimeKind.Utc), code.HasPassword, code.BandwidthLimitKBps));
     }
     [Authorize(Policy = Constants.AuthPolicy.RequireEditorRole)]
     [HttpPost("group/{groupId}/link/password")]
@@ -256,8 +256,13 @@ public class AuthController : Controller
             }
         }
 
+        if (request.BandwidthLimitKBps.HasValue)
+        {
+            readerCode.BandwidthLimitKBps = request.BandwidthLimitKBps.Value > 0 ? request.BandwidthLimitKBps.Value : null;
+        }
+
         await _linkCodeRepo.UpdateAsync(readerCode);
-        return Ok(new ShareLinkResponse(readerCode.Code, DateTime.SpecifyKind(readerCode.ExpireDate, DateTimeKind.Utc), !string.IsNullOrEmpty(readerCode.PasswordHash)));
+        return Ok(new ShareLinkResponse(readerCode.Code, DateTime.SpecifyKind(readerCode.ExpireDate, DateTimeKind.Utc), !string.IsNullOrEmpty(readerCode.PasswordHash), readerCode.BandwidthLimitKBps));
     }
     [Authorize(Policy = Constants.AuthPolicy.RequireOwner)]
     [HttpGet("links")]
@@ -300,7 +305,7 @@ public class AuthController : Controller
 public record LinkList(Guid GroupId,
     string Code, DateTime expirationDate, int? uses, int? maxUses, DateTime? lastAccess, int ItemCount, bool HasPassword);
 public record GetCodeRequest(string Code);
-public record ShareLinkResponse(string Code, DateTime expirationDate, bool HasPassword);
+public record ShareLinkResponse(string Code, DateTime expirationDate, bool HasPassword, int? BandwidthLimitKBps = null);
 public record LoginRequest(string Code, string? Password = null);
 public record LoginPasswordRequiredResponse(bool PasswordRequired);
 public record SetLinkPasswordRequest(string? Password);
@@ -311,7 +316,7 @@ public class AdminLoginRequest
     public required string Password { get; set; }
 }
 public record BulkLinkCodesRequest(List<string> Codes);
-public record UpdateLinkSettingsRequest(int? HoursValid, bool? PasswordEnabled, string? Password);
+public record UpdateLinkSettingsRequest(int? HoursValid, bool? PasswordEnabled, string? Password, int? BandwidthLimitKBps);
 public record ChangePasswordRequest
 {
     public required string OldPassword { get; set; }

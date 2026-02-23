@@ -91,7 +91,7 @@ public class AuthLinkGenerator
                 {
                     if (code.Role == Constants.AuthRoleTypes.Reader)
                     {
-                        return new ShareCode(code.Code, code.GroupId, code.AppUserId, code.ExpireDate, !string.IsNullOrEmpty(code.PasswordHash));
+                        return new ShareCode(code.Code, code.GroupId, code.AppUserId, code.ExpireDate, !string.IsNullOrEmpty(code.PasswordHash), code.BandwidthLimitKBps);
                     }
                 }
             }
@@ -100,4 +100,4 @@ public class AuthLinkGenerator
         return new ShareCode(c.Code, c.GroupId, c.AppUserId, c.ExpireDate, !string.IsNullOrEmpty(c.PasswordHash));
     }
 }
-public record ShareCode(string Code, Guid GroupId, Guid AppUserId, DateTime Expiration, bool HasPassword);
+public record ShareCode(string Code, Guid GroupId, Guid AppUserId, DateTime Expiration, bool HasPassword, int? BandwidthLimitKBps = null);
