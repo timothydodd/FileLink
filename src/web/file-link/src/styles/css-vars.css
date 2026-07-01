@@ -54,7 +54,7 @@
   --rd-on-surface-muted: var(--title-color);
   --rd-border-color: var(--border-color);
   --rd-focus-ring: var(--primary);
-  --rd-dropdown-bg: var(--bg-surface);
+  --rd-select-bg: var(--bg-surface);
   --rd-border-radius: 8px;
   --rd-success: var(--primary);
 }
@@ -115,7 +115,7 @@
   --rd-on-surface-muted: var(--title-color);
   --rd-border-color: var(--border-color);
   --rd-focus-ring: var(--primary);
-  --rd-dropdown-bg: var(--bg-surface-raised);
+  --rd-select-bg: var(--bg-surface-raised);
   --rd-border-radius: 8px;
   --rd-success: var(--primary);
 }

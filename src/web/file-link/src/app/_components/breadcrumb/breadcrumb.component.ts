@@ -1,7 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, NavigationEnd, Router, RouterLink } from '@angular/router';
-import { LucideAngularModule } from 'lucide-angular';
+import { LucideDynamicIcon } from '@lucide/angular';
 import { filter } from 'rxjs';
 
 interface Crumb {
@@ -12,15 +12,15 @@ interface Crumb {
 @Component({
   selector: 'app-breadcrumb',
   standalone: true,
-  imports: [RouterLink, LucideAngularModule],
+  imports: [RouterLink, LucideDynamicIcon],
   template: `
     @if (crumbs().length) {
       <nav class="breadcrumb">
         <a routerLink="/" class="breadcrumb-home">
-          <lucide-icon name="home" [size]="14" />
+          <svg lucideIcon="home" [size]="14" />
         </a>
         @for (crumb of crumbs(); track crumb.label) {
-          <lucide-icon name="chevron-right" [size]="14" class="breadcrumb-sep" />
+          <svg lucideIcon="chevron-right" [size]="14" class="breadcrumb-sep" />
           @if (crumb.url) {
             <a [routerLink]="crumb.url" class="breadcrumb-link">{{ crumb.label }}</a>
           } @else {

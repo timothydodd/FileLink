@@ -17,8 +17,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { Fancybox } from '@fancyapps/ui';
 import { ModalContainerService, SkeletonComponent, ToastService } from '@rd-ui';
-import { FormsModule } from '@angular/forms';
-import { LucideAngularModule } from 'lucide-angular';
+import { LucideDynamicIcon } from '@lucide/angular';
 import { HttpClient } from '@angular/common/http';
 import { switchMap, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -45,9 +44,8 @@ import { getPreviewType, getViewUrl, PreviewType } from '../../_helpers/file-pre
   standalone: true,
   imports: [
     CommonModule,
-    FormsModule,
     ShareLinkDisplayComponent,
-    LucideAngularModule,
+    LucideDynamicIcon,
     UploadItemsComponent,
     SkeletonComponent,
   ],
@@ -66,10 +64,10 @@ import { getPreviewType, getViewUrl, PreviewType } from '../../_helpers/file-pre
               >
                 {{ opt.label }}
                 @if (sortField() === opt.field) {
-                  <lucide-angular
-                    [name]="sortDirection() === 'asc' ? 'arrow-up' : 'arrow-down'"
+                  <svg
+                    [lucideIcon]="sortDirection() === 'asc' ? 'arrow-up' : 'arrow-down'"
                     [size]="14"
-                  ></lucide-angular>
+                  ></svg>
                 }
               </button>
             }
@@ -79,16 +77,16 @@ import { getPreviewType, getViewUrl, PreviewType } from '../../_helpers/file-pre
               class="search-bar"
               type="text"
               placeholder="Filter files..."
-              [ngModel]="searchTerm()"
-              (ngModelChange)="searchTerm.set($event)"
+              [value]="searchTerm()"
+              (input)="searchTerm.set($any($event.target).value)"
             />
           }
         </div>
       }
-      @if (downloadAllUrl() && !isEditor()) {
+      @if (downloadAllUrl() && !isEditor() && !hasLargeFiles()) {
         <div class="download-all-bar">
           <a class="btn btn-primary" [href]="getDownloadAllHref()">
-            <lucide-angular name="file-archive" [size]="16"></lucide-angular>
+            <svg lucideIcon="file-archive" [size]="16"></svg>
             Download All
           </a>
         </div>
@@ -108,10 +106,10 @@ import { getPreviewType, getViewUrl, PreviewType } from '../../_helpers/file-pre
                   <img [src]="item.imageSrc!" [alt]="item.title" />
                 }
                 <div class="overlay">
-                  <lucide-angular
-                    [name]="item.mediaType === mediaType.Image ? 'eye' : 'download'"
+                  <svg
+                    [lucideIcon]="item.mediaType === mediaType.Image ? 'eye' : 'download'"
                     size="60"
-                  ></lucide-angular>
+                  ></svg>
                 </div>
               </a>
               <div class="info-panel">
@@ -119,7 +117,7 @@ import { getPreviewType, getViewUrl, PreviewType } from '../../_helpers/file-pre
                   <div class="title">{{ item.title }}</div>
                   @if (isEditor()) {
                     <button class="btn-icon-sm" title="Rename" aria-label="Rename file" (click)="openRenameModal(item, $event)">
-                      <lucide-angular name="pencil" [size]="14"></lucide-angular>
+                      <svg lucideIcon="pencil" [size]="14"></svg>
                     </button>
                   }
                 </div>
@@ -142,7 +140,7 @@ import { getPreviewType, getViewUrl, PreviewType } from '../../_helpers/file-pre
                   <div class="info small">{{ item.size }}</div>
                   @if (item.downloadCount > 0) {
                     <div class="info small flex-row" style="gap: 3px; align-items: center;">
-                      <lucide-angular name="download" [size]="12"></lucide-angular>
+                      <svg lucideIcon="download" [size]="12"></svg>
                       {{ item.downloadCount }}
                     </div>
                   }
@@ -151,16 +149,16 @@ import { getPreviewType, getViewUrl, PreviewType } from '../../_helpers/file-pre
             } @else if (item.imageType === ImageType.Icon) {
               @if (item.previewType !== PreviewType.None && item.previewType !== PreviewType.Image) {
                 <div class="item icon-wrap preview-item" (click)="onPreviewClick($event, item)">
-                  <lucide-angular [name]="item.imageSrc!" [size]="48"></lucide-angular>
+                  <svg [lucideIcon]="item.imageSrc!" [size]="48"></svg>
                   <div class="overlay">
-                    <lucide-angular name="eye" size="60"></lucide-angular>
+                    <svg lucideIcon="eye" size="60"></svg>
                   </div>
                 </div>
               } @else {
                 <a class="item icon-wrap" [href]="item.url" target="_blank" rel="noreferrer">
-                  <lucide-angular [name]="item.imageSrc!" [size]="48"></lucide-angular>
+                  <svg [lucideIcon]="item.imageSrc!" [size]="48"></svg>
                   <div class="overlay">
-                    <lucide-angular name="download" size="60"></lucide-angular>
+                    <svg lucideIcon="download" size="60"></svg>
                   </div>
                 </a>
               }
@@ -168,7 +166,7 @@ import { getPreviewType, getViewUrl, PreviewType } from '../../_helpers/file-pre
                 <div class="title">{{ item.title }}</div>
                 @if (isEditor()) {
                   <button class="btn-icon-sm" title="Rename" aria-label="Rename file" (click)="openRenameModal(item, $event)">
-                    <lucide-angular name="pencil" [size]="14"></lucide-angular>
+                    <svg lucideIcon="pencil" [size]="14"></svg>
                   </button>
                 }
               </div>
@@ -176,7 +174,7 @@ import { getPreviewType, getViewUrl, PreviewType } from '../../_helpers/file-pre
                 <div class="info small">{{ item.size }}</div>
                 @if (item.downloadCount > 0) {
                   <div class="info small flex-row" style="gap: 3px; align-items: center;">
-                    <lucide-angular name="download" [size]="12"></lucide-angular>
+                    <svg lucideIcon="download" [size]="12"></svg>
                     {{ item.downloadCount }}
                   </div>
                 }
@@ -198,17 +196,17 @@ import { getPreviewType, getViewUrl, PreviewType } from '../../_helpers/file-pre
         <app-share-link-display [groupId]="groupId()">
           <div class="sep"></div>
           <div class="flex-row gap10">
-            @if (downloadAllUrl()) {
+            @if (downloadAllUrl() && !hasLargeFiles()) {
               <a class="btn btn-icon" title="Download All as Zip" aria-label="Download all files as zip" [href]="getDownloadAllHref()">
-                <lucide-angular name="file-archive" [size]="18"></lucide-angular>
+                <svg lucideIcon="file-archive" [size]="18"></svg>
               </a>
             }
             <button class="btn btn-icon" title="Upload File" aria-label="Upload file" (click)="upload()">
-              <lucide-angular name="cloud-upload" [size]="18"></lucide-angular>
+              <svg lucideIcon="cloud-upload" [size]="18"></svg>
             </button>
             @if (localFilesEnabled()) {
               <button class="btn btn-icon" title="Attach Host File" aria-label="Attach host file" (click)="openLocalFilesModal()">
-                <lucide-angular name="paperclip" [size]="18"></lucide-angular>
+                <svg lucideIcon="paperclip" [size]="18"></svg>
               </button>
             }
           </div>
@@ -321,6 +319,17 @@ export class UploadViewPageComponent implements OnDestroy, AfterViewInit {
   });
   downloadAllUrl = signal<string | null>(null);
   localFilesEnabled = signal(false);
+  private readonly oneGigabyte = 1024 * 1024 * 1024;
+  /**
+   * The server-side "Download All" zips every file in the group. Zipping very large
+   * files is too expensive/unreliable, so the button is hidden entirely when the group
+   * contains any file over 1 GB.
+   */
+  hasLargeFiles = computed(() => {
+    const files = this.files();
+    if (!files) return false;
+    return files.some((file) => (file.size ?? 0) > this.oneGigabyte);
+  });
   constructor() {
     const savedSort = this.userPref.get('fileSort');
     if (savedSort) {

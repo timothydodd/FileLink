@@ -187,10 +187,15 @@ public class UploadService
                     throw new FileNotFoundException($"Chunk {i} not found for session {session.ItemId}");
                 }
 
-                await using var chunkStream = new FileStream(chunkPath, FileMode.Open,
-                    FileAccess.Read, FileShare.Read, 81920, useAsync: true);
-
-                await chunkStream.CopyToAsync(outputStream);
+                // Close the chunk stream before deleting it. On Windows, deleting a file
+                // whose handle is still open (opened without FileShare.Delete) throws
+                // "the process cannot access the file ... because it is being used by
+                // another process", so the read must be fully scoped and disposed first.
+                await using (var chunkStream = new FileStream(chunkPath, FileMode.Open,
+                    FileAccess.Read, FileShare.Read, 81920, useAsync: true))
+                {
+                    await chunkStream.CopyToAsync(outputStream);
+                }
 
                 // Delete chunk after combining
                 System.IO.File.Delete(chunkPath);
@@ -200,7 +205,7 @@ public class UploadService
         // Clean up temp directory
         try
         {
-            Directory.Delete(tempDir);
+            Directory.Delete(tempDir, recursive: true);
         }
         catch
         {

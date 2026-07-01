@@ -1,7 +1,7 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterOutlet } from '@angular/router';
-import { ToastComponent } from '@rd-ui';
+import { ToastIndicatorComponent } from '@rd-ui';
 import { ConnectionStatusComponent } from './_components/connection-status/connection-status.component';
 import { MainNavBarComponent } from './_components/main-nav-bar/main-nav-bar.component';
 
@@ -12,8 +12,9 @@ import { ThemeService } from './_services/theme.service';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, MainNavBarComponent, ToastComponent, ConnectionStatusComponent],
+  imports: [RouterOutlet, MainNavBarComponent, ToastIndicatorComponent, ConnectionStatusComponent],
   templateUrl: './app.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './app.component.css',
 })
 export class AppComponent {

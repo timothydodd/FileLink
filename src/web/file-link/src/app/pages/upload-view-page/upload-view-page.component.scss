@@ -12,7 +12,7 @@
   align-items: flex-start;
   flex-wrap: wrap;
   padding: 20px;
-  gap: 50px;
+  gap: 32px;
 }
 .card-down {
   display: flex;
@@ -94,6 +94,21 @@
   height: 100%;
   width: auto;
   object-fit: contain;
+}
+
+/* Image uploads use the same thumbnail height as the movie posters so the grid rows
+   line up, but their width is left unconstrained to follow the image's aspect ratio
+   instead of being cropped to the poster width. */
+.card-down.image {
+  width: auto;
+  min-width: 0;
+}
+.card-down.image .item {
+  width: auto;
+  min-width: 0;
+  /* Don't stretch to the card width (set by the title/info below) — size to the
+     image itself, otherwise smaller images get surface-coloured bars on the sides. */
+  align-self: center;
 }
 .card-down .title {
   font-weight: bold;
@@ -292,6 +307,11 @@
   .item {
     width: 140px;
     height: 210px;
+  }
+  .card-down.image .item {
+    width: auto;
+    min-width: 0;
+    align-self: center;
   }
 }
 :host {

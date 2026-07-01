@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
-import { FormsModule } from '@angular/forms';
+import { FormField, form, required } from '@angular/forms/signals';
 import { SpinnerComponent } from '@rd-ui';
 import { JwtAuthProvider } from '../../_services/auth/providers/jwt-auth-provider.service';
 import { RouterHelperService } from '../../_services/route-helper';
@@ -13,7 +13,7 @@ import {
 import { LogoComponent } from '../../_components/logo/logo.component';
 
 @Component({
-  imports: [SpinnerComponent, FormsModule, LogoComponent],
+  imports: [SpinnerComponent, FormField, LogoComponent],
   template: `
     @if (showPasswordPrompt()) {
       <div class="login-container">
@@ -21,15 +21,13 @@ import { LogoComponent } from '../../_components/logo/logo.component';
           <div class="login-header">
             <app-logo></app-logo>
           </div>
-          <form (ngSubmit)="submitPassword()" class="login-form">
+          <form (submit)="submitPassword($event)" class="login-form">
             <div class="form-group">
               <label for="password">This link is password protected</label>
               <input
                 type="password"
                 id="password"
-                name="password"
-                [(ngModel)]="password"
-                required
+                [formField]="passwordForm.password"
                 class="form-control"
                 placeholder="Enter password"
                 autofocus
@@ -61,7 +59,8 @@ export class LinkRoutePageComponent {
 
   showPasswordPrompt = signal(false);
   error = signal<string | null>(null);
-  password = '';
+  passwordModel = signal({ password: '' });
+  passwordForm = form(this.passwordModel, (p) => required(p.password));
   private code = '';
 
   constructor() {
@@ -107,8 +106,10 @@ export class LinkRoutePageComponent {
     });
   }
 
-  submitPassword() {
+  submitPassword(event: Event) {
+    event.preventDefault();
+    if (this.passwordForm().invalid()) return;
     this.error.set(null);
-    this.attemptLogin(this.password);
+    this.attemptLogin(this.passwordModel().password);
   }
 }

@@ -1,9 +1,8 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { DomSanitizer } from '@angular/platform-browser';
 import { ActivatedRoute } from '@angular/router';
-import { LucideAngularModule } from 'lucide-angular';
+import { LucideDynamicIcon } from '@lucide/angular';
 import { take } from 'rxjs';
 import { AuthService } from '../../_services/auth/auth.service';
 import { HealthCheckService } from '../../_services/health-check.service';
@@ -11,12 +10,12 @@ import { HealthCheckService } from '../../_services/health-check.service';
 @Component({
   selector: 'app-error-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, LucideAngularModule],
+  imports: [CommonModule, LucideDynamicIcon],
   template: `
     <div class="main-wrap">
       <div class="error-message l-window">
         <div class="error-icon">
-          <lucide-angular name="alert-triangle" [size]="48"></lucide-angular>
+          <svg lucideIcon="alert-triangle" [size]="48"></svg>
         </div>
 
         <ng-container>
@@ -50,9 +49,9 @@ import { HealthCheckService } from '../../_services/health-check.service';
               <div>FileLink Servers</div>
               @if (this.healthData()) {
                 @if (isHealthy()) {
-                  <lucide-angular name="check-circle" [size]="20" class="status-healthy"></lucide-angular>
+                  <svg lucideIcon="check-circle" [size]="20" class="status-healthy"></svg>
                 } @else {
-                  <lucide-angular name="x-circle" [size]="20" class="status-unhealthy"></lucide-angular>
+                  <svg lucideIcon="x-circle" [size]="20" class="status-unhealthy"></svg>
                 }
               } @else {
                 <div class="spinner-loader"></div>

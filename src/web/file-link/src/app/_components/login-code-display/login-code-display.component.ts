@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { ToastService } from '@rd-ui';
-import { LucideAngularModule } from 'lucide-angular';
+import { LucideDynamicIcon } from '@lucide/angular';
 import { combineLatest, take } from 'rxjs';
 import { AuthService } from '../../_services/auth/auth.service';
 import { JwtAuthProvider } from '../../_services/auth/providers/jwt-auth-provider.service';
@@ -9,7 +9,7 @@ import { AuthLinkService } from '../../_services/web-api/auth-link.service';
 @Component({
   selector: 'app-login-code-display',
   standalone: true,
-  imports: [LucideAngularModule],
+  imports: [LucideDynamicIcon],
   template: `
     @if (loginUrl()) {
       <div class="flex-row gap10">
@@ -17,7 +17,7 @@ import { AuthLinkService } from '../../_services/web-api/auth-link.service';
           <a [href]="loginUrl()">{{ loginUrl() }} </a>
         </div>
         <button class="btn btn-word" title="Copy" (click)="copyLink()">
-          <lucide-angular name="copy" size="16"></lucide-angular>
+          <svg lucideIcon="copy" size="16"></svg>
         </button>
       </div>
     }

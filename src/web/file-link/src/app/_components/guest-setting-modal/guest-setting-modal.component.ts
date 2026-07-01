@@ -1,6 +1,5 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { CheckboxComponent, ModalLayoutComponent } from '@rd-ui';
 import { LoginCodeDisplayComponent } from '../../_components/login-code-display/login-code-display.component';
 import { Constants } from '../../_helpers/constants';
@@ -12,7 +11,7 @@ import { UploadService } from '../../_services/web-api/upload.service';
 @Component({
   standalone: true,
   selector: 'app-guest-setting-modal',
-  imports: [CommonModule, FormsModule, LoginCodeDisplayComponent, CheckboxComponent, ModalLayoutComponent],
+  imports: [CommonModule, LoginCodeDisplayComponent, CheckboxComponent, ModalLayoutComponent],
   template: `
     <rd-modal-layout [title]="'Settings'">
       <div slot="body">
@@ -24,7 +23,7 @@ import { UploadService } from '../../_services/web-api/upload.service';
       <div slot="footer">
         <div class="flex-row gap20">
           <rd-checkbox
-            [ngModel]="cacheKey()"
+            [checked]="cacheKey()"
             label="Keep Me Logged In (local storage)"
             (checkedChange)="cacheCheckEvent($event)"
           ></rd-checkbox>

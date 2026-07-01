@@ -1,12 +1,12 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { FormField, form, validate } from '@angular/forms/signals';
 import { ModalComponent, ModalLayoutComponent } from '@rd-ui';
 
 @Component({
   standalone: true,
   selector: 'app-rename-modal',
-  imports: [CommonModule, FormsModule, ModalLayoutComponent],
+  imports: [CommonModule, FormField, ModalLayoutComponent],
   template: `
     <rd-modal-layout [title]="'Rename File'">
       <div slot="body">
@@ -15,8 +15,7 @@ import { ModalComponent, ModalLayoutComponent } from '@rd-ui';
           <input
             type="text"
             id="newName"
-            [ngModel]="newName()"
-            (ngModelChange)="newName.set($event)"
+            [formField]="renameForm.name"
             (keydown.enter)="submit()"
             autofocus
           />
@@ -44,17 +43,20 @@ import { ModalComponent, ModalLayoutComponent } from '@rd-ui';
 export class RenameModalComponent {
   private modalComponent = inject(ModalComponent);
 
-  newName = signal<string>(this.modalComponent.config?.data?.name ?? '');
-
-  hasError = computed(() => {
-    return this.newName().trim().length === 0;
+  nameModel = signal<{ name: string }>({ name: this.modalComponent.config?.data?.name ?? '' });
+  renameForm = form(this.nameModel, (p) => {
+    validate(p.name, (ctx) =>
+      ctx.value().trim().length === 0 ? { kind: 'required', message: 'Name cannot be empty.' } : null
+    );
   });
 
+  hasError = () => this.renameForm().invalid();
+
   submit() {
-    if (!this.hasError()) {
+    if (!this.renameForm().invalid()) {
       this.modalComponent.modalContainerService.close(
         this.modalComponent.modalId!,
-        this.newName().trim()
+        this.nameModel().name.trim()
       );
     }
   }

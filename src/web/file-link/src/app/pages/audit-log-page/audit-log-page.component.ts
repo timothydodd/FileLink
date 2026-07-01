@@ -2,19 +2,19 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ToastService } from '@rd-ui';
-import { LucideAngularModule } from 'lucide-angular';
+import { LucideDynamicIcon } from '@lucide/angular';
 import { AuditLogItem, AuditLogService } from '../../_services/web-api/audit-log.service';
 
 @Component({
   selector: 'app-audit-log-page',
-  imports: [CommonModule, LucideAngularModule],
+  imports: [CommonModule, LucideDynamicIcon],
   template: `
     <div class="audit-container">
       <h2>Activity Log</h2>
       @if (logs(); as items) {
         @if (items.length === 0) {
           <div class="empty-state">
-            <lucide-angular name="scroll-text" [size]="48" class="empty-icon"></lucide-angular>
+            <svg lucideIcon="scroll-text" [size]="48" class="empty-icon"></svg>
             <h3>No activity yet</h3>
             <p>Activity such as logins, downloads, and link creation will appear here.</p>
           </div>

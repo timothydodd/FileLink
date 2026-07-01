@@ -1,8 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, signal, viewChild } from '@angular/core';
+import { Component, inject, signal, viewChild, ChangeDetectionStrategy } from '@angular/core';
 
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
-import { FormsModule } from '@angular/forms';
 import { ModalContainerService, SkeletonComponent, ToastService } from '@rd-ui';
 import { switchMap, tap } from 'rxjs';
 import { UploadItemsComponent, UploadItemsStatus } from '../../_components/upload-items/upload-items.component';
@@ -16,7 +15,7 @@ import { LocalFile, UploadService } from '../../_services/web-api/upload.service
 @Component({
   selector: 'app-upload-create-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, UploadItemsComponent, SkeletonComponent],
+  imports: [CommonModule, UploadItemsComponent, SkeletonComponent],
   template: `
     @if (isLoading()) {
       <rd-skeleton width="600px" height="388px"></rd-skeleton>
@@ -32,6 +31,7 @@ import { LocalFile, UploadService } from '../../_services/web-api/upload.service
       </div>
     }
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './upload-create-page.component.css',
 })
 export class UploadCreatePageComponent {

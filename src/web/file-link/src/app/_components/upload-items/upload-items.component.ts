@@ -14,16 +14,15 @@ import {
   WritableSignal,
 } from '@angular/core';
 
-import { FormsModule } from '@angular/forms';
 import { ToastService } from '@rd-ui';
-import { LucideAngularModule } from 'lucide-angular';
+import { LucideDynamicIcon } from '@lucide/angular';
 import { Observable } from 'rxjs';
 import { ChunkUploadProgress, UploadResult } from '../../_services/web-api/upload-chunk.service';
 import { ProgressComponent } from './progress';
 
 @Component({
   selector: 'app-upload-items',
-  imports: [CommonModule, FormsModule, ProgressComponent, LucideAngularModule],
+  imports: [CommonModule, ProgressComponent, LucideDynamicIcon],
   template: `
     <div
       class="box"
@@ -35,13 +34,13 @@ import { ProgressComponent } from './progress';
       aria-label="Drag and drop files here to upload"
     >
       <div class="box-input">
-        <lucide-angular
+        <svg
           style="cursor:pointer"
-          name="cloud-upload"
+          lucideIcon="cloud-upload"
           class="pulse"
           size="128"
           (click)="filePicker.click()"
-        ></lucide-angular>
+        ></svg>
 
         <label for="file">Drag and Drop files to upload</label>
         <div class="flex-row gap20">
@@ -67,9 +66,9 @@ import { ProgressComponent } from './progress';
             <div class="item" [class.pulse]="!file.failed()" [class.item-failed]="file.failed()">
               <div class="icon">
                 @if (file.failed()) {
-                  <lucide-angular name="alert-circle" size="48" class="error-icon"></lucide-angular>
+                  <svg lucideIcon="alert-circle" size="48" class="error-icon"></svg>
                 } @else {
-                  <lucide-angular name="cloud-upload" size="48"></lucide-angular>
+                  <svg lucideIcon="cloud-upload" size="48"></svg>
                 }
               </div>
               <div class="name">
@@ -78,7 +77,7 @@ import { ProgressComponent } from './progress';
               @if (file.failed()) {
                 <div class="error-text">{{ file.errorMessage() }}</div>
                 <button class="retry-btn" (click)="retryUpload(file)">
-                  <lucide-angular name="refresh-cw" [size]="14"></lucide-angular>
+                  <svg lucideIcon="refresh-cw" [size]="14"></svg>
                   Retry
                 </button>
               }

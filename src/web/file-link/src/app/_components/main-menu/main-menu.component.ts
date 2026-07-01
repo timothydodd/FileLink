@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, ElementRef, HostListener,
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterModule } from '@angular/router';
 import { ModalContainerService } from '@rd-ui';
-import { LucideAngularModule } from 'lucide-angular';
+import { LucideDynamicIcon } from '@lucide/angular';
 import { filter } from 'rxjs';
 import { AuthService } from '../../_services/auth/auth.service';
 import { TokenUser } from '../../_services/auth/token-user';
@@ -14,43 +14,43 @@ import { GuestSettingModalComponent } from '../guest-setting-modal/guest-setting
 
 @Component({
   selector: 'app-main-menu',
-  imports: [LucideAngularModule, RouterModule],
+  imports: [LucideDynamicIcon, RouterModule],
   template: `
     <button type="button" class="btn-icon" aria-label="Open menu" title="Menu" (click)="isOpen.set(!isOpen())">
-      <lucide-angular name="square-menu" [size]="20"></lucide-angular>
+      <svg lucideIcon="square-menu" [size]="20"></svg>
     </button>
     @if (isOpen()) {
       <div class="menu-backdrop" (click)="close()"></div>
       <div class="menu">
         @if (showGuestSettings()) {
           <button dropdown-item (click)="openGuestSettings()" aria-label="Settings">
-            <lucide-angular name="settings" [size]="18"></lucide-angular>
+            <svg lucideIcon="settings" [size]="18"></svg>
             <span>Settings</span>
           </button>
         }
         @if (showLinks()) {
           <div class="menu-section-label">Links</div>
           <button dropdown-item (click)="router.goCreate()" aria-label="Create link">
-            <lucide-angular name="plus" [size]="18"></lucide-angular>
+            <svg lucideIcon="plus" [size]="18"></svg>
             <span>Create Link</span>
           </button>
           <button dropdown-item routerLink="links" routerLinkActive="active-link" aria-label="Manage links">
-            <lucide-angular name="list" [size]="18"></lucide-angular>
+            <svg lucideIcon="list" [size]="18"></svg>
             <span>Manage Links</span>
           </button>
 
           <div class="menu-divider"></div>
           <div class="menu-section-label">Admin</div>
           <button dropdown-item (click)="router.goStorage()" aria-label="Storage usage">
-            <lucide-angular name="hard-drive" [size]="18"></lucide-angular>
+            <svg lucideIcon="hard-drive" [size]="18"></svg>
             <span>Storage Usage</span>
           </button>
           <button dropdown-item (click)="router.goAuditLog()" aria-label="Activity log">
-            <lucide-angular name="scroll-text" [size]="18"></lucide-angular>
+            <svg lucideIcon="scroll-text" [size]="18"></svg>
             <span>Activity Log</span>
           </button>
           <button dropdown-item (click)="openChangePassword()" aria-label="Change password">
-            <lucide-angular name="key-round" [size]="18"></lucide-angular>
+            <svg lucideIcon="key-round" [size]="18"></svg>
             <span>Change Password</span>
           </button>
         }
@@ -58,15 +58,15 @@ import { GuestSettingModalComponent } from '../guest-setting-modal/guest-setting
         <div class="menu-divider"></div>
         <button dropdown-item (click)="toggleTheme()" [attr.aria-label]="themeService.resolvedTheme() === 'light' ? 'Switch to dark mode' : 'Switch to light mode'">
           @if (themeService.resolvedTheme() === 'light') {
-            <lucide-angular name="moon" [size]="18"></lucide-angular>
+            <svg lucideIcon="moon" [size]="18"></svg>
             <span>Dark Mode</span>
           } @else {
-            <lucide-angular name="sun" [size]="18"></lucide-angular>
+            <svg lucideIcon="sun" [size]="18"></svg>
             <span>Light Mode</span>
           }
         </button>
         <button dropdown-item class="logout-item" (click)="logOut()" aria-label="Log out">
-          <lucide-angular name="log-out" [size]="18"></lucide-angular>
+          <svg lucideIcon="log-out" [size]="18"></svg>
           <span>Logout</span>
         </button>
       </div>

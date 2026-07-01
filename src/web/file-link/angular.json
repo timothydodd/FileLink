@@ -80,6 +80,16 @@
                 "glob": "env-config.js",
                 "input": "src/app"
               }]
+            },
+            "testing": {
+              "aot": false,
+              "optimization": false,
+              "extractLicenses": false,
+              "scripts": [],
+              "polyfills": [
+                "zone.js",
+                "zone.js/testing"
+              ]
             }
          
           },
@@ -87,6 +97,9 @@
         },
         "serve": {
           "builder": "@angular/build:dev-server",
+          "options": {
+            "port": 4006
+          },
           "configurations": {
             "production": {
               "buildTarget": "file-link:build:production"
@@ -101,24 +114,11 @@
           "builder": "@angular/build:extract-i18n"
         },
         "test": {
-          "builder": "@angular/build:karma",
+          "builder": "@angular/build:unit-test",
           "options": {
-            "polyfills": [
-              "zone.js",
-              "zone.js/testing"
-            ],
             "tsConfig": "tsconfig.spec.json",
-            "assets": [
-              {
-                "glob": "**/*",
-                "input": "public"
-              }
-            ],
-            "styles": [
-              "node_modules/@fancyapps/ui/dist/fancybox/fancybox.css",
-              "src/styles.css"
-            ],
-            "scripts": [ ]
+            "buildTarget": ":build:testing",
+            "runner": "vitest"
           }
         },
         "lint": {

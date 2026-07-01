@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, effect, inject, input, signal } from '@angular/core';
 import { ModalContainerService, ToastService } from '@rd-ui';
-import { LucideAngularModule } from 'lucide-angular';
+import { LucideDynamicIcon } from '@lucide/angular';
 import { take } from 'rxjs';
 import { AuthService } from '../../_services/auth/auth.service';
 import { JwtAuthProvider } from '../../_services/auth/providers/jwt-auth-provider.service';
@@ -11,7 +11,7 @@ import { SettingModalComponent } from '../common/setting-modal/setting-modal.com
 @Component({
   selector: 'app-share-link-display',
   standalone: true,
-  imports: [CommonModule, LucideAngularModule],
+  imports: [CommonModule, LucideDynamicIcon],
   styleUrl: './share-link-display.component.scss',
   template: `
     @if (loginUrl()) {
@@ -21,10 +21,10 @@ import { SettingModalComponent } from '../common/setting-modal/setting-modal.com
         </div>
         <div class="flex-row gap10" style="justify-self: center">
           <button class="btn btn-icon" title="Copy link" aria-label="Copy link to clipboard" (click)="copyLink()">
-            <lucide-angular name="copy" [size]="16"></lucide-angular>
+            <svg lucideIcon="copy" [size]="16"></svg>
           </button>
           <button class="btn btn-icon" title="Link settings" aria-label="Open link settings" (click)="openSettings()">
-            <lucide-angular name="settings" [size]="16"></lucide-angular>
+            <svg lucideIcon="settings" [size]="16"></svg>
           </button>
           <ng-content></ng-content>
         </div>

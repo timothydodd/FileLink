@@ -1,9 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, signal, TemplateRef } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import { LucideAngularModule } from 'lucide-angular';
 import { AuthService } from '../../_services/auth/auth.service';
 import { TokenUser } from '../../_services/auth/token-user';
 import { RouterHelperService } from '../../_services/route-helper';
@@ -14,7 +12,7 @@ import { MainMenuComponent } from '../main-menu/main-menu.component';
 @Component({
   selector: 'app-main-nav',
   standalone: true,
-  imports: [CommonModule, FormsModule, LucideAngularModule, LogoComponent, RouterModule, MainMenuComponent],
+  imports: [CommonModule, LogoComponent, RouterModule, MainMenuComponent],
   template: `
     <app-logo></app-logo>
     @if (templateRef()) {

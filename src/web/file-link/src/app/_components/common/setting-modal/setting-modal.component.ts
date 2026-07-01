@@ -10,7 +10,7 @@ import {
 } from '@angular/core';
 import { form, FormField } from '@angular/forms/signals';
 import { CheckboxComponent, ModalComponent, ModalLayoutComponent, ToastService } from '@rd-ui';
-import { LucideAngularModule } from 'lucide-angular';
+import { LucideDynamicIcon } from '@lucide/angular';
 import { take } from 'rxjs';
 import { AuthService } from '../../../_services/auth/auth.service';
 import { JwtAuthProvider } from '../../../_services/auth/providers/jwt-auth-provider.service';
@@ -32,7 +32,7 @@ interface SettingsFormModel {
 @Component({
   standalone: true,
   selector: 'app-setting-modal',
-  imports: [CommonModule, FormField, LucideAngularModule, ModalLayoutComponent, QrCodeComponent, CheckboxComponent],
+  imports: [CommonModule, FormField, LucideDynamicIcon, ModalLayoutComponent, QrCodeComponent, CheckboxComponent],
   template: `
     <rd-modal-layout [title]="'Settings'">
       <div slot="body">
@@ -45,15 +45,15 @@ interface SettingsFormModel {
                   <div class="link-row">
                     <span class="link-text">{{ loginUrl() }}</span>
                     <button class="btn-copy" (click)="copyToClipboard()" title="Copy to clipboard">
-                      <lucide-angular name="copy" size="14"></lucide-angular>
+                      <svg lucideIcon="copy" size="14"></svg>
                       Copy
                     </button>
                     <button class="btn-copy" [disabled]="hasError()" (click)="generateLink()" title="Regenerate link">
-                      <lucide-angular name="refresh-cw" size="14"></lucide-angular>
+                      <svg lucideIcon="refresh-cw" size="14"></svg>
                     </button>
                   </div>
                   <span class="expiry-badge">
-                    <lucide-angular name="clock" size="12"></lucide-angular>
+                    <svg lucideIcon="clock" size="12"></svg>
                     Expires {{ expireDate() | date: 'mediumDate' }}
                   </span>
                 </div>
@@ -128,7 +128,7 @@ interface SettingsFormModel {
         @if (loginUrl()) {
           <div class="button-group">
             <button type="button" class="btn delete-button" (click)="deleteLink()">
-              <lucide-angular name="trash-2" size="14"></lucide-angular>
+              <svg lucideIcon="trash-2" size="14"></svg>
               Delete
             </button>
             <button type="button" class="btn btn-primary save-button" [disabled]="hasError() || !isDirty() || saving()" (click)="saveSettings()">

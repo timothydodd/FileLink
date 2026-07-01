@@ -10,9 +10,8 @@ import {
   WritableSignal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { FormsModule } from '@angular/forms';
 import { CheckboxComponent, ModalComponent, ModalLayoutComponent, SkeletonComponent, SpinnerComponent } from '@rd-ui';
-import { LucideAngularModule } from 'lucide-angular';
+import { LucideDynamicIcon } from '@lucide/angular';
 import { catchError, debounceTime, Observable, of, switchMap, timer } from 'rxjs';
 import { FileIndexResponse, LocalFile, UploadService } from '../../_services/web-api/upload.service';
 
@@ -38,9 +37,8 @@ export interface SelectedLocalFile extends LocalFile {
   selector: 'app-local-files-modal',
   imports: [
     CommonModule,
-    FormsModule,
     CheckboxComponent,
-    LucideAngularModule,
+    LucideDynamicIcon,
     SkeletonComponent,
     SpinnerComponent,
     ModalLayoutComponent,
@@ -51,8 +49,8 @@ export interface SelectedLocalFile extends LocalFile {
         <div>
           <input
             type="text"
-            [ngModel]="searchText()"
-            (ngModelChange)="searchTextChange.emit($event)"
+            [value]="searchText()"
+            (input)="searchTextChange.emit($any($event.target).value)"
             class="form-control"
             placeholder="Search files and folders"
           />
@@ -67,14 +65,14 @@ export interface SelectedLocalFile extends LocalFile {
                   <div class="tree-item" [style.padding-left.px]="node.level * 20 + 15">
                     @if (node.isFolder) {
                       <div class="folder-row" (click)="toggleFolder(node)">
-                        <lucide-icon
+                        <svg
                           [size]="24"
-                          [name]="node.expanded() ? 'chevron-down' : 'chevron-right'"
+                          [lucideIcon]="node.expanded() ? 'chevron-down' : 'chevron-right'"
                           class="expand-icon"
-                        ></lucide-icon>
-                        <lucide-icon name="folder" [size]="28" class="folder-icon"></lucide-icon>
+                        ></svg>
+                        <svg lucideIcon="folder" [size]="28" class="folder-icon"></svg>
                         <rd-checkbox
-                          [ngModel]="node.selected()"
+                          [checked]="node.selected()"
                           [label]="node.name"
                           (checkedChange)="onFolderCheck(node, $event)"
                           class="folder-check"
@@ -83,9 +81,9 @@ export interface SelectedLocalFile extends LocalFile {
                     } @else {
                       <div class="file-row">
                         <div class="file-indent"></div>
-                        <lucide-icon name="file" class="file-icon" [size]="24"></lucide-icon>
+                        <svg lucideIcon="file" class="file-icon" [size]="24"></svg>
                         <rd-checkbox
-                          [ngModel]="node.selected()"
+                          [checked]="node.selected()"
                           [label]="node.name"
                           (checkedChange)="node.selected.set($event)"
                           class="file-check"

@@ -1,29 +1,30 @@
-import { Component, computed, inject } from '@angular/core';
-import { LucideAngularModule } from 'lucide-angular';
+import { Component, computed, inject, ChangeDetectionStrategy } from '@angular/core';
+import { LucideDynamicIcon } from '@lucide/angular';
 import { SignalRService } from '../../_services/signalr.service';
 
 @Component({
   selector: 'app-connection-status',
   standalone: true,
-  imports: [LucideAngularModule],
+  imports: [LucideDynamicIcon],
   template: `
     @if (status() !== 'disconnected') {
       <div class="connection-status" [class]="status()">
         @switch (status()) {
           @case ('connecting') {
-            <lucide-icon name="loader" [size]="14" class="spin"></lucide-icon>
+            <svg lucideIcon="loader" [size]="14" class="spin"></svg>
           }
           @case ('connected') {
-            <lucide-icon name="wifi" [size]="14"></lucide-icon>
+            <svg lucideIcon="wifi" [size]="14"></svg>
           }
           @case ('error') {
-            <lucide-icon name="wifi-off" [size]="14"></lucide-icon>
+            <svg lucideIcon="wifi-off" [size]="14"></svg>
           }
         }
         <span class="label">{{ label() }}</span>
       </div>
     }
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   styles: `
     .connection-status {
       position: fixed;

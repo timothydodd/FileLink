@@ -11,7 +11,7 @@
     <LangVersion>14</LangVersion>
     <SpaRoot>..\web\file-link</SpaRoot>
     <SpaProxyLaunchCommand>npm start</SpaProxyLaunchCommand>
-    <SpaProxyServerUrl>http://localhost:4200</SpaProxyServerUrl>
+    <SpaProxyServerUrl>http://localhost:4006</SpaProxyServerUrl>
   </PropertyGroup>
 
   <ItemGroup>
@@ -46,13 +46,13 @@
 
   <ItemGroup>
 
-    <PackageReference Include="Microsoft.AspNetCore.JsonPatch" Version="10.0.3" />
+    <PackageReference Include="Microsoft.AspNetCore.JsonPatch" Version="10.0.9" />
     <PackageReference Include="AspNetCore.HealthChecks.MySql" Version="9.0.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.3" />
-    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="10.0.3" />
-    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="10.0.3" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.9" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="10.0.9" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="10.0.9" />
     <PackageReference Include="Microsoft.AspNetCore.SpaProxy">
-      <Version>10.0.3</Version>
+      <Version>10.0.9</Version>
     </PackageReference>
   </ItemGroup>
 

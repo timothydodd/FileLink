@@ -1,24 +1,23 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { CheckboxComponent, ToastService } from '@rd-ui';
 import { RouterHelperService } from '../../_services/route-helper';
-import { LucideAngularModule } from 'lucide-angular';
+import { LucideDynamicIcon } from '@lucide/angular';
 import { AuthLinkService, LinkListItem } from '../../_services/web-api/auth-link.service';
 
 @Component({
   selector: 'app-links-page',
-  imports: [CommonModule, FormsModule, LucideAngularModule, CheckboxComponent, RouterModule],
+  imports: [CommonModule, LucideDynamicIcon, CheckboxComponent, RouterModule],
   template: `
     <div class="toolbar">
       <button class="btn btn-primary" (click)="router.goCreate()">
-        <lucide-angular name="plus" [size]="16"></lucide-angular>
+        <svg lucideIcon="plus" [size]="16"></svg>
         Create New
       </button>
       <button class="btn btn-tool" [class.active]="selectionMode()" (click)="toggleSelectionMode()">
-        <lucide-angular [name]="selectionMode() ? 'x' : 'list'" [size]="16"></lucide-angular>
+        <svg [lucideIcon]="selectionMode() ? 'x' : 'list'" [size]="16"></svg>
         {{ selectionMode() ? 'Cancel' : 'Select' }}
       </button>
       @if (selectionMode() && selectedCount() > 0) {
@@ -26,7 +25,7 @@ import { AuthLinkService, LinkListItem } from '../../_services/web-api/auth-link
           @if (bulkLoading()) {
             <span class="btn-spinner-sm"></span>
           } @else {
-            <lucide-angular name="calendar-days" [size]="16"></lucide-angular>
+            <svg lucideIcon="calendar-days" [size]="16"></svg>
           }
           Expire ({{ selectedCount() }})
         </button>
@@ -34,7 +33,7 @@ import { AuthLinkService, LinkListItem } from '../../_services/web-api/auth-link
           @if (bulkLoading()) {
             <span class="btn-spinner-sm"></span>
           } @else {
-            <lucide-angular name="x" [size]="16"></lucide-angular>
+            <svg lucideIcon="x" [size]="16"></svg>
           }
           Delete ({{ selectedCount() }})
         </button>
@@ -43,8 +42,8 @@ import { AuthLinkService, LinkListItem } from '../../_services/web-api/auth-link
         class="search-bar"
         type="text"
         placeholder="Filter by code..."
-        [ngModel]="searchTerm()"
-        (ngModelChange)="searchTerm.set($event)"
+        [value]="searchTerm()"
+        (input)="searchTerm.set($any($event.target).value)"
       />
     </div>
     <div class="divider"></div>
@@ -52,17 +51,17 @@ import { AuthLinkService, LinkListItem } from '../../_services/web-api/auth-link
       @if (filteredLinks(); as links) {
         @if (links.length === 0 && !searchTerm()) {
           <div class="empty-state">
-            <lucide-angular name="link" [size]="48" class="empty-icon"></lucide-angular>
+            <svg lucideIcon="link" [size]="48" class="empty-icon"></svg>
             <h3>No shared links yet</h3>
             <p>Create your first link to start sharing files.</p>
             <a routerLink="/create" class="btn btn-primary empty-cta">
-              <lucide-angular name="plus" [size]="16"></lucide-angular>
+              <svg lucideIcon="plus" [size]="16"></svg>
               Create Link
             </a>
           </div>
         } @else if (links.length === 0 && searchTerm()) {
           <div class="empty-state">
-            <lucide-angular name="search" [size]="48" class="empty-icon"></lucide-angular>
+            <svg lucideIcon="search" [size]="48" class="empty-icon"></svg>
             <h3>No results</h3>
             <p>No links match "{{ searchTerm() }}".</p>
           </div>
@@ -73,7 +72,7 @@ import { AuthLinkService, LinkListItem } from '../../_services/web-api/auth-link
                 <tr>
                   @if (selectionMode()) {
                     <th class="checkbox-col">
-                      <rd-checkbox [ngModel]="allSelected()" (checkedChange)="toggleSelectAll()"></rd-checkbox>
+                      <rd-checkbox [checked]="allSelected()" (checkedChange)="toggleSelectAll()"></rd-checkbox>
                     </th>
                   }
                   <th>Code</th>
@@ -95,7 +94,7 @@ import { AuthLinkService, LinkListItem } from '../../_services/web-api/auth-link
                     @if (selectionMode()) {
                       <td class="checkbox-col" (click)="$event.stopPropagation()">
                         <rd-checkbox
-                          [ngModel]="selectedCodes().has(link.code)"
+                          [checked]="selectedCodes().has(link.code)"
                           (checkedChange)="toggleSelection(link.code)"
                         ></rd-checkbox>
                       </td>
@@ -103,7 +102,7 @@ import { AuthLinkService, LinkListItem } from '../../_services/web-api/auth-link
                     <td>{{ link.code }}</td>
                     <td>
                       @if (link.hasPassword) {
-                        <lucide-angular name="lock" [size]="14"></lucide-angular>
+                        <svg lucideIcon="lock" [size]="14"></svg>
                       }
                     </td>
                     <td class="hide-mobile">

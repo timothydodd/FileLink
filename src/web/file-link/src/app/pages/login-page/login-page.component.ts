@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { FormsModule } from '@angular/forms';
+import { FormField, disabled, form, required } from '@angular/forms/signals';
 import { LogoComponent } from '../../_components/logo/logo.component';
 import { AuthService } from '../../_services/auth/auth.service';
 import { RouterHelperService } from '../../_services/route-helper';
@@ -9,25 +9,22 @@ import { AuthLinkService } from '../../_services/web-api/auth-link.service';
 
 @Component({
   selector: 'app-login-page',
-  imports: [CommonModule, FormsModule, LogoComponent],
+  imports: [CommonModule, FormField, LogoComponent],
   template: `
     <div class="login-container">
       <div class="login-card">
         <div class="login-header">
           <app-logo></app-logo>
         </div>
-        <form (ngSubmit)="onSubmit()" class="login-form">
+        <form (submit)="onSubmit($event)" class="login-form">
           <div class="form-group">
             <label for="username">Username</label>
             <input
               type="text"
               id="username"
-              name="username"
-              [(ngModel)]="username"
-              required
+              [formField]="loginForm.username"
               class="form-control"
               placeholder="Enter your username"
-              [disabled]="loading()"
             />
           </div>
 
@@ -36,12 +33,9 @@ import { AuthLinkService } from '../../_services/web-api/auth-link.service';
             <input
               type="password"
               id="password"
-              name="password"
-              [(ngModel)]="password"
-              required
+              [formField]="loginForm.password"
               class="form-control"
               placeholder="Enter your password"
-              [disabled]="loading()"
             />
           </div>
 
@@ -70,11 +64,17 @@ import { AuthLinkService } from '../../_services/web-api/auth-link.service';
 export class LoginPageComponent {
   authService = inject(AuthService);
   authLinkService = inject(AuthLinkService);
-  password: string = '';
-  username: string = '';
   router = inject(RouterHelperService);
   error = signal<string | null>(null);
   loading = signal(false);
+
+  loginModel = signal({ username: '', password: '' });
+  loginForm = form(this.loginModel, (p) => {
+    required(p.username);
+    required(p.password);
+    disabled(p.username, () => this.loading());
+    disabled(p.password, () => this.loading());
+  });
   constructor() {
     this.authService
       .getUser()
@@ -85,11 +85,13 @@ export class LoginPageComponent {
         }
       });
   }
-  onSubmit() {
-    if (this.loading()) return;
+  onSubmit(event: Event) {
+    event.preventDefault();
+    if (this.loading() || this.loginForm().invalid()) return;
     this.error.set(null);
     this.loading.set(true);
-    this.authLinkService.loginAdmin(this.username, this.password).subscribe({
+    const { username, password } = this.loginModel();
+    this.authLinkService.loginAdmin(username, password).subscribe({
       next: (x) => {
         if (x.token) this.authService.setToken(x.token, x.refreshToken, x.expiresIn);
         this.loading.set(false);

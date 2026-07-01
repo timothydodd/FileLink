@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { SkeletonComponent, ToastService } from '@rd-ui';
-import { LucideAngularModule } from 'lucide-angular';
+import { LucideDynamicIcon } from '@lucide/angular';
 import { RouterHelperService } from '../../_services/route-helper';
 import {
   GroupStorageUsage,
@@ -13,7 +13,7 @@ import {
 @Component({
   selector: 'app-storage-page',
   standalone: true,
-  imports: [CommonModule, LucideAngularModule, SkeletonComponent],
+  imports: [CommonModule, LucideDynamicIcon, SkeletonComponent],
   template: `
     @if (usage()) {
       <div class="summary-cards">
@@ -50,7 +50,7 @@ import {
 
       @if (usage()!.groups.length === 0) {
         <div class="empty-state">
-          <lucide-angular name="hard-drive" [size]="48" class="empty-icon"></lucide-angular>
+          <svg lucideIcon="hard-drive" [size]="48" class="empty-icon"></svg>
           <h3>No storage data</h3>
           <p>Upload files to a link to see storage usage here.</p>
         </div>
