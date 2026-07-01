@@ -83,7 +83,7 @@ public class MoviePlugin : IFilePlugin
 
 
         // try downloading the poster into local wwwroot
-        if (metaData.Poster != null && metaData.Poster.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+        if (IsValidHttpUrl(metaData.Poster))
         {
             var directory = _postersPath;
             if (!Directory.Exists(directory))
@@ -136,7 +136,7 @@ public class MoviePlugin : IFilePlugin
         file.ImdbId = metaData.ImdbID;
 
         // try downloading the poster into local wwwroot
-        if (metaData.Poster != null && metaData.Poster.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+        if (IsValidHttpUrl(metaData.Poster))
         {
             var directory = _postersPath;
             if (!Directory.Exists(directory))
@@ -198,7 +198,7 @@ public class MoviePlugin : IFilePlugin
         file.ImdbId = metaData.ImdbID;
 
         // try downloading the poster into local wwwroot
-        if (metaData.Poster != null && metaData.Poster.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+        if (IsValidHttpUrl(metaData.Poster))
         {
             var directory = _postersPath;
             if (!Directory.Exists(directory))
@@ -220,8 +220,13 @@ public class MoviePlugin : IFilePlugin
             }
             catch (Exception ex)
             {
+                file.Poster = null;
                 _logger.LogError(ex, $"Error downloading poster for {file.Title}");
             }
+        }
+        else
+        {
+            file.Poster = null;
         }
         return file;
     }
@@ -314,6 +319,15 @@ public class MoviePlugin : IFilePlugin
     private string removeSpecialCharacters(string s)
     {
         return Regex.Replace(s, "[^a-zA-Z0-9_.]+", "", RegexOptions.Compiled);
+    }
+    // OMDB occasionally returns malformed poster urls (e.g. "https:/m.media-amazon.com/..."
+    // with a single slash, or "N/A"). A bare StartsWith("http") check lets those through and
+    // the frontend then resolves them as relative paths. Require a well-formed absolute http(s) url.
+    private static bool IsValidHttpUrl(string? url)
+    {
+        return Uri.TryCreate(url, UriKind.Absolute, out var uri)
+            && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)
+            && uri.Authority.Length > 0;
     }
     private string getPosterName(Metadata d)
     {
